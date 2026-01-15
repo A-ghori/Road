@@ -6,8 +6,6 @@ function connectDB() {
   try {
     mongoose
       .connect(mongoURI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         maxPoolSize: 10,
       })
       .then(() => {
