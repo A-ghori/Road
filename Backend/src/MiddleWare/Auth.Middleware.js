@@ -3,7 +3,7 @@ const adminModel = require("../models/admin.model");
 const jwt = require("jsonwebtoken");
 
 const userMiddleWare = async (req, res, next) => {
-  const token = req.cookies?.token;
+  const token = req.cookies.token;
   if (!token) return res.status(401).json({ message: "Login required" });
 
   try {
@@ -16,7 +16,7 @@ const userMiddleWare = async (req, res, next) => {
 };
 
 const adminMiddleWare = async (req, res, next) => {
-  const token = req.cookies?.token;
+  const token = req.cookies.token;
   if (!token) return res.status(401).json({ message: "Login required" });
 
   try {
