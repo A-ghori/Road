@@ -1,5 +1,6 @@
 const express = require("express");
-const authMiddleware = require("../MiddleWare/Auth.Middleware")
+
+const {userMiddleWare} = require("../MiddleWare/Auth.Middleware")
 const authController = require("../Controller/auth.controller");
 const router = express.Router();
 
@@ -10,8 +11,6 @@ router.get("/user/logout",authController.logOut);
 
 
 // Checking Controller 
-router.get("/check", authMiddleware, authController.userCheck)
+router.get("/check", userMiddleWare, authController.userCheck)
 
 module.exports = router;
-
-
