@@ -1,8 +1,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const cookieParser = require("cookie-parser")
 // Here all routes
+const cookieParser = require("cookie-parser");
+// Here all routes
+const adminRoutes = require("./Routes/adminRoutes");
 const authRoutes = require("./Routes/publicRoutes");
 const app = express();
 require("dotenv").config();
@@ -18,5 +20,9 @@ app.get("/", (req, res) => {
 });
 
 // All app.use routes
+
 app.use("/api/auth",authRoutes)
+app.use("/api/auth", authRoutes);
+app.use("/api/auth", adminRoutes);
+
 module.exports = app;
