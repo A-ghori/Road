@@ -1,0 +1,79 @@
+/* ===== GLOBAL THEME ===== */
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  color: #212529;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ===== DARK MODE ===== */
+body.dark {
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+/* ===== GLASS UI ===== */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+}
+
+body.dark .glass {
+  background: rgba(30, 41, 59, 0.85);
+}
+
+/* ===== CARDS ===== */
+.card {
+  border-radius: 14px;
+}
+
+body.dark .card {
+  background-color: #1e293b;
+  color: #e5e7eb;
+}
+
+/* ===== TEXT ===== */
+.text-muted {
+  color: #6b7280 !important;
+}
+
+body.dark .text-muted {
+  color: #9ca3af !important;
+}
+
+/* ===== HOVER EFFECT ===== */
+.card-hover {
+  transition: transform 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-6px);
+}
+
+/* ===== ADDITIONAL TWEAKS ===== */
+.card-hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+body.dark .card-hover:hover {
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+}
+
+.card-hover {
+  transition: all 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+}
+
+.bg-primary {
+  background: linear-gradient(45deg, #2563EB, #1E40AF) !important;
+}
+.bg-info {
+  background: linear-gradient(45deg, #06B6D4, #0891B2) !important;
+}
+.bg-dark {
+  background: linear-gradient(45deg, #111827, #374151) !important;
+}
