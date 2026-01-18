@@ -2,6 +2,8 @@ const userModel = require("../models/user.model")
 const adminModel = require("../models/admin.model");
 const jwt = require("jsonwebtoken");
 
+
+//For User MiddleWare
 const userMiddleWare = async (req, res, next) => {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ message: "Login required" });
@@ -15,6 +17,8 @@ const userMiddleWare = async (req, res, next) => {
   }
 };
 
+
+// For Admin MiddleWare
 const adminMiddleWare = async (req, res, next) => {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ message: "Login required" });
@@ -29,6 +33,10 @@ const adminMiddleWare = async (req, res, next) => {
     res.status(401).json({ message: "Invalid token" });
   }
 };
+
+
+
+// For Govt Middleware
 
 module.exports = { userMiddleWare, adminMiddleWare };
 
