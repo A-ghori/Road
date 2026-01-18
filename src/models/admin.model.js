@@ -60,7 +60,7 @@ adminSchema.pre("save", async function() {
     return ;
   }
   this.password = await bcrypt.hash(this.password,12);
-  
+  // next();
 });
 
 //Password Compare

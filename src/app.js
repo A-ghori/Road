@@ -6,6 +6,10 @@ const cookieParser = require("cookie-parser");
 // Here all routes
 const adminRoutes = require("./Routes/adminRoutes");
 const authRoutes = require("./Routes/publicRoutes");
+const reportRoute = require("./Routes/reportRoutes")
+
+
+
 const app = express();
 require("dotenv").config();
 
@@ -24,5 +28,5 @@ app.get("/", (req, res) => {
 app.use("/api/auth",authRoutes)
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", adminRoutes);
-
+app.use("/api",reportRoute)
 module.exports = app;
