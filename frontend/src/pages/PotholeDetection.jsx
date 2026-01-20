@@ -60,11 +60,10 @@ const PotholeDetection = () => {
     <Container fluid className="p-4 bg-light">
       <Row className="mb-4 text-center">
         <Col>
-          <h2 className="fw-bold text-primary">
-            AI Road Condition Detection
-          </h2>
+          <h2 className="fw-bold text-primary">AI Road Condition Detection</h2>
           <p className="text-muted">
-            Automated detection, reporting & prioritization using Computer Vision
+            Automated detection, reporting & prioritization using Computer
+            Vision
           </p>
         </Col>
       </Row>
@@ -90,7 +89,9 @@ const PotholeDetection = () => {
                 onClick={handleAnalyze}
                 disabled={!file || analyzing}
               >
-                {analyzing ? "Analyzing with AI..." : "Detect Potholes / Cracks"}
+                {analyzing
+                  ? "Analyzing with AI..."
+                  : "Detect Potholes / Cracks"}
               </Button>
 
               {analyzing && (
@@ -143,13 +144,15 @@ const PotholeDetection = () => {
                         <td>{d.road}</td>
                         <td>{d.type}</td>
                         <td>
-                          <Badge bg={
-                            d.severity === "High"
-                              ? "danger"
-                              : d.severity === "Medium"
-                              ? "warning"
-                              : "success"
-                          }>
+                          <Badge
+                            bg={
+                              d.severity === "High"
+                                ? "danger"
+                                : d.severity === "Medium"
+                                  ? "warning"
+                                  : "success"
+                            }
+                          >
                             {d.severity}
                           </Badge>
                         </td>
