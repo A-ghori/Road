@@ -1,4 +1,4 @@
-class graph {
+class graph1 {
     constructor() {
         this.adj = new Map();
     };
@@ -23,4 +23,4 @@ class graph {
     }
 }
 
-module.exports = graph
+module.exports = graph1

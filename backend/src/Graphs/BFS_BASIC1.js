@@ -1,49 +1,47 @@
-// 1 → 2 → 3 → 4 → 5
-
-
-// LIFO -> LAST IN FIRST OUT
-
+// FIFO Queue (not LIFO)
 class Queue {
-    constructor(){
-        this.item = []
-    }
-    Enqueue (items){
-        this.item.push(items)
-    }
-    Dequeue (){
-        return this.item.shift()
-    }
-    IsEmpty(){
-        return this.item.length === 0
-    }
+  constructor() {
+    this.items = [];
+  }
+
+  Enqueue(item) {
+    this.items.push(item);
+  }
+
+  Dequeue() {
+    return this.items.shift();
+  }
+
+  isEmpty() {
+    return this.items.length === 0;
+  }
 }
 
-function bfs (graph, src) {
-     const visited = new Set();
-     const q = new Queue();
-     const order = [];
+// BFS FUNCTION
+function bfs(graph, src) {
+  const visited = new Set();
+  const q = new Queue();
+  const order = [];
 
+  q.Enqueue(src);
+  visited.add(src);
 
-     q.Enquque(src);
-     visited.add(src);
+  while (!q.isEmpty()) {
+    let U = q.Dequeue();
+    order.push(U);   // traversal
 
+    for (let neighbour of graph[U]) {
+      if (!visited.has(neighbour)) {
+        visited.add(neighbour);
+        q.Enqueue(neighbour);
+      }
+    }
+  }
 
-     while(!q.isEmpty()){
-        let U = q.Dequque();
-        // Traversal
-        order.push(q);
-
-        for(let neigthbours of graph[U]){
-            if(!visited.has(neigthbours)){
-                visited.add(neigthbours);
-                q.Enquque(neigthbours)
-            }
-        }
-     }
-     return order
+  return order;
 }
 
-
+// Test Graph
 const graph1 = {
   1: [2],
   2: [3],
@@ -53,4 +51,3 @@ const graph1 = {
 };
 
 console.log(bfs(graph1, 1));
-
