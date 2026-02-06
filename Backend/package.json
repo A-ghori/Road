@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "imagekit": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.3",
+    "multer": "^2.0.2",
+    "nodemon": "^3.1.11",
+    "osm-pbf-parser": "^2.3.0",
+    "osm-pbf-parser-node": "^1.1.4",
+    "osmtogeojson": "^3.0.0-beta.5",
+    "tinyqueue": "^3.0.0",
+    "uuid": "^13.0.0"
+  }
+}
