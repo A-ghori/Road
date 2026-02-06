@@ -1,0 +1,8 @@
+# Virtul Environment 
+PotholeEnv/
+
+# Yolo Model
+yolov8n.pt
+
+# Dataset
+Dataset/
