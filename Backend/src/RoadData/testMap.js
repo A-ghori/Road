@@ -11,8 +11,24 @@ const graph = new Map();
 // Example coords (New Delhi: Connaught Place to India Gate)
 // const startCoords = { lat: 28.6315, lon: 77.2167 };
 // const endCoords = { lat: 28.6129, lon: 77.2295 };
-const startCoords = { lat: 28.5778, lon: 77.1968 }; // Hauz Khas Village
-const endCoords = { lat: 28.6475, lon: 77.2228 }; // Qutub Minar
+// const startCoords = { lat: 28.5778, lon: 77.1968 }; // Hauz Khas Village
+// const endCoords = { lat: 28.6475, lon: 77.2228 }; // Qutub Minar
+
+// Delhi Boundry check
+function checkDelhiBoundary(lat, lon) {
+  const Delhi_Bounds = {
+    north: 28.88,
+    south: 28.4,
+    west: 76.84,
+    east: 77.35,
+  };
+  return (
+    lat >= Delhi_Bounds.south &&
+    lat <= Delhi_Bounds.north &&
+    lon >= Delhi_Bounds.west &&
+    lon <= Delhi_Bounds.east
+  );
+}
 
 // 2. Haversine Distance Helper
 function haversine(p1, p2) {
@@ -146,24 +162,78 @@ function savePathToGeoJSON(pathIds, filename = "route.geojson") {
 }
 
 // 7. Execution
-(async () => {
-  try {
+// (async () => {
+//   try {
+//     await buildGraph();
+
+//     const start = findNearestNode(startCoords.lat, startCoords.lon);
+//     const end = findNearestNode(endCoords.lat, endCoords.lon);
+
+//     console.log(` Starting Dijkstra: Node ${start} to ${end}`);
+//     const resultPath = dijkstra(start, end);
+
+//     if (resultPath.length <= 1) {
+//       console.log(" No path found between those coordinates.");
+//     } else {
+//       console.log(" Path Found!");
+//       console.log("Total Nodes in Route:", resultPath.length);
+//       savePathToGeoJSON(resultPath);
+//     }
+//   } catch (e) {
+//     console.error("Error:", e.message);
+//   }
+// })();
+//
+//                             NEW ROUTE FOR MAPPING
+let graphReady = false;
+async function initGraph() {
+  if (!graphReady) {
     await buildGraph();
-
-    const start = findNearestNode(startCoords.lat, startCoords.lon);
-    const end = findNearestNode(endCoords.lat, endCoords.lon);
-
-    console.log(` Starting Dijkstra: Node ${start} to ${end}`);
-    const resultPath = dijkstra(start, end);
-
-    if (resultPath.length <= 1) {
-      console.log(" No path found between those coordinates.");
-    } else {
-      console.log(" Path Found!");
-      console.log("Total Nodes in Route:", resultPath.length);
-      savePathToGeoJSON(resultPath);
-    }
-  } catch (e) {
-    console.error("Error:", e.message);
+    graphReady = true;
+    console.log("Graph Initialized Successfully");
   }
-})();
+}
+
+async function getRoute(startLat, startLon, endLat, endLon) {
+  if (
+    !checkDelhiBoundary(startLat, startLon) ||
+    !checkDelhiBoundary(endLat, endLon)
+  ) {
+    throw new Error(
+      "Coordinates are not within Delhi boundary Please Give Correct Boundary",
+    );
+  }
+  await initGraph();
+  let start = findNearestNode(startLat, startLon);
+  let end = findNearestNode(endLat, endLon);
+
+  if (!start || !end) {
+    throw new Error("Invalid coordinates");
+  }
+  const pathIds = dijkstra(start, end);
+  if (!pathIds || pathIds.length <= 1) {
+    throw new Error("No path found between those coordinates");
+  }
+  const coords = pathIds.map((id) => nodes.get(id)).map((c) => [c.lat, c.lon]);
+  savePathToGeoJSON(pathIds);
+  console.log("Save Result in GEOJSON", pathIds);
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { name: "New Delhi Route" },
+        geometry: {
+          type: "LineString",
+          coordinates: coords,
+        },
+      },
+    ],
+  };
+}
+module.exports = {
+  dijkstra,
+  buildGraph,
+  findNearestNode,
+  getRoute,
+};
