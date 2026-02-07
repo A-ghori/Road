@@ -5,24 +5,13 @@ const { getRoute } = require("../RoadData/testMap");
 router.post("/route", async (req, res) => {
   console.log("Route API hit");
   console.log("Body:", req.body);
+  const { startLat, startLon, endLat, endLon } = req.body;
 
-  try {
-    const { startLat, startLon, endLat, endLon } = req.body;
+  const geojson = await getRoute(startLat, startLon, endLat, endLon);
 
-    const geojson = await getRoute(
-      Number(startLat),
-      Number(startLon),
-      Number(endLat),
-      Number(endLon),
-    );
+  console.log("Route calculated successfully from RoadRoutes");
 
-    console.log("Route calculated successfully from RoadRoutes");
-
-    res.json(geojson);
-  } catch (err) {
-    console.error("Error:", err);
-    res.status(500).json({ error: err.message });
-  }
+  res.json(geojson);
 });
 
 module.exports = router;
