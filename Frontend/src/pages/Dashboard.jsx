@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import LiveMap from "./LiveMap";
 
 /* 🔹 Bootstrap */
 import {
@@ -26,19 +27,6 @@ import {
   Legend,
 } from "chart.js";
 
-/* 🔹 CSV */
-import { CSVLink } from "react-csv";
-
-/* 🔹 Map */
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-
-/* 🔹 Leaflet icons */
-import L from "leaflet";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
 /* 🔥 Register chart.js */
 ChartJS.register(
   CategoryScale,
@@ -48,19 +36,27 @@ ChartJS.register(
   Legend
 );
 
-/* 🔧 Fix leaflet marker icon */
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
-
 const Dashboard = () => {
+  /* 🔹 Sample Road Data */
   const [roads, setRoads] = useState([
-    { id: 1, name: "NH-16 Kolkata", status: "Clear", condition: 92, lat: 22.6, lng: 88.4 },
-    { id: 2, name: "Sector-V Salt Lake", status: "Moderate Traffic", condition: 65, lat: 22.58, lng: 88.42 },
-    { id: 3, name: "Howrah Bridge", status: "Heavy Traffic", condition: 38, lat: 22.585, lng: 88.346 },
+    {
+      id: 1,
+      name: "NH-16 Kolkata",
+      status: "Clear",
+      condition: 92,
+    },
+    {
+      id: 2,
+      name: "Sector-V Salt Lake",
+      status: "Moderate Traffic",
+      condition: 65,
+    },
+    {
+      id: 3,
+      name: "Howrah Bridge",
+      status: "Heavy Traffic",
+      condition: 38,
+    },
   ]);
 
   const [alerts] = useState([
@@ -73,9 +69,11 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
+  /* 🔹 Auto Update Condition Simulation */
   useEffect(() => {
     const interval = setInterval(() => {
       setLoading(true);
+
       setTimeout(() => {
         setRoads((prev) =>
           prev.map((r) => ({
@@ -86,6 +84,7 @@ const Dashboard = () => {
             ),
           }))
         );
+
         setShowToast(true);
         setLoading(false);
       }, 800);
@@ -111,6 +110,7 @@ const Dashboard = () => {
     labels: roads.map((r) => r.name),
     datasets: [
       {
+        label: "Road Condition %",
         data: roads.map((r) => r.condition),
         backgroundColor: "rgba(59,130,246,0.7)",
       },
@@ -119,20 +119,15 @@ const Dashboard = () => {
 
   return (
     <Container fluid className="p-4">
+      {/* 🔹 Header */}
       <Row className="mb-4 text-center">
         <Col>
           <h2 className="fw-bold">Smart City Road Monitoring</h2>
           <p className="text-muted">AI-assisted infrastructure dashboard</p>
-          <CSVLink
-            data={roads}
-            filename="road_conditions.csv"
-            className="btn btn-outline-secondary btn-sm"
-          >
-            Export CSV
-          </CSVLink>
         </Col>
       </Row>
 
+      {/* 🔹 Alerts */}
       <Row className="mb-4">
         <Col>
           <Card>
@@ -148,6 +143,7 @@ const Dashboard = () => {
         </Col>
       </Row>
 
+      {/* 🔹 Chart */}
       <Row className="mb-4">
         <Col>
           <Card>
@@ -159,7 +155,9 @@ const Dashboard = () => {
         </Col>
       </Row>
 
+      {/* 🔹 Road List + Live Map */}
       <Row>
+        {/* 🔹 Road Conditions Section */}
         <Col md={6}>
           <Card className="mb-4">
             <Card.Header>Road Conditions</Card.Header>
@@ -169,6 +167,7 @@ const Dashboard = () => {
                 className="mb-2"
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+
               <Form.Select
                 className="mb-3"
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -190,7 +189,10 @@ const Dashboard = () => {
                         {road.status}
                       </Badge>
                     </div>
-                    <ProgressBar now={road.condition} label={`${road.condition}%`} />
+                    <ProgressBar
+                      now={road.condition}
+                      label={`${road.condition}%`}
+                    />
                   </div>
                 ))
               )}
@@ -198,33 +200,25 @@ const Dashboard = () => {
           </Card>
         </Col>
 
+        {/* 🔥 Live Socket Map Section */}
         <Col md={6}>
           <Card className="mb-4">
             <Card.Header>Live City Map</Card.Header>
             <Card.Body style={{ padding: 0 }}>
-              <MapContainer
-                center={[22.5726, 88.3639]}
-                zoom={12}
-                style={{ height: 350 }}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                {roads.map((road) => (
-                  <Marker key={road.id} position={[road.lat, road.lng]}>
-                    <Popup>
-                      <strong>{road.name}</strong>
-                      <br />
-                      {road.status} – {road.condition}%
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              <LiveMap />
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
+      {/* 🔹 Toast Notification */}
       <ToastContainer position="top-end">
-        <Toast show={showToast} autohide delay={2500} onClose={() => setShowToast(false)}>
+        <Toast
+          show={showToast}
+          autohide
+          delay={2500}
+          onClose={() => setShowToast(false)}
+        >
           <Toast.Body>Road data updated</Toast.Body>
         </Toast>
       </ToastContainer>
