@@ -1,17 +1,21 @@
 const express = require("express");
+const cors = require("cors");
 // Here all routes
 const adminRoutes = require("./Routes/adminRoutes");
 const authRoutes = require("./Routes/publicRoutes");
 const roadRoute = require("./Routes/Road_Routes");
 
 const app = express();
+app.use(cors({
+  origin: ["http://localhost:3000", "http://localhost:3002"],
+  credentials: true
+}));
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // All app.use routes
 
-app.use("/api/auth", authRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", adminRoutes);
 app.use("/api", roadRoute);

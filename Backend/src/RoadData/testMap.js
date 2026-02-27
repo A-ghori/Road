@@ -137,7 +137,7 @@ function savePathToGeoJSON(pathIds, filename = "route.geojson") {
   const coords = pathIds
     .map((id) => nodes.get(id))
     .filter((c) => c)
-    .map((c) => [c.lon, c.lat]);
+    .map((c) => [c.lat, c.lon]);
 
   // WRAPPER: This makes it a valid FeatureCollection
   const geojson = {
@@ -195,17 +195,17 @@ async function initGraph() {
 }
 
 async function getRoute(startLat, startLon, endLat, endLon) {
-  if (
-    !checkDelhiBoundary(startLat, startLon) ||
-    !checkDelhiBoundary(endLat, endLon)
-  ) {
-    throw new Error(
-      "Coordinates are not within Delhi boundary Please Give Correct Boundary",
-    );
-  }
+  console.log("Boundary check skipped (debug mode)");
+  console.log("ROUTE INPUT COORDS:");
+  console.log("START:", startLat, startLon);
+  console.log("END:", endLat, endLon);
   await initGraph();
   let start = findNearestNode(startLat, startLon);
   let end = findNearestNode(endLat, endLon);
+
+  console.log("NEAREST GRAPH NODE:");
+  console.log("START NODE ID:", start);
+  console.log("END NODE ID:", end);
 
   if (!start || !end) {
     throw new Error("Invalid coordinates");
@@ -214,7 +214,11 @@ async function getRoute(startLat, startLon, endLat, endLon) {
   if (!pathIds || pathIds.length <= 1) {
     throw new Error("No path found between those coordinates");
   }
-  const coords = pathIds.map((id) => nodes.get(id)).map((c) => [c.lat, c.lon]);
+  const coords = pathIds
+    .map((id) => nodes.get(id))
+    .filter((c) => c)
+    .map((c) => [c.lon, c.lat]);
+  console.log("TOTAL COORDINATES IN ROUTE:", coords.length);
   savePathToGeoJSON(pathIds);
   console.log("Save Result in GEOJSON", pathIds);
   return {

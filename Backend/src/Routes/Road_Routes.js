@@ -17,12 +17,10 @@ const startCoords = await geoCodePlace(start);
 const endCoords = await geoCodePlace(end);
 
     const geojson = await getRoute(
-      
-      startCoords.lat, 
-      startCoords.lon, 
-      endCoords.lat, 
-      endCoords.lon
-    
+      parseFloat(startCoords.lat),
+      parseFloat(startCoords.lon),
+      parseFloat(endCoords.lat),
+      parseFloat(endCoords.lon)
     );
 
     console.log("Route calculated successfully (POST)");
@@ -46,13 +44,15 @@ router.get("/route", async (req, res) => {
     }
 const geoStart = await geoCodePlace(start);
 const geoEnd = await geoCodePlace(end);
+console.log("START GEOCODE:", geoStart);
+console.log("END GEOCODE:", geoEnd);
 
 
     const geojson = await getRoute(
-      geoStart.lat,
-       geoStart.lon,
-        geoEnd.lat,
-         geoEnd.lon
+      parseFloat(geoStart.lat),
+      parseFloat(geoStart.lon),
+      parseFloat(geoEnd.lat),
+      parseFloat(geoEnd.lon)
     );
 
     console.log("Route calculated successfully (GET)");

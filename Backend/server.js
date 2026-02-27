@@ -8,5 +8,5 @@ require("dotenv").config();
 connectDb();
 
 server.listen(3001, () => {
-  console.log("Server running at http://localhost:3000");
+  console.log("Server running at http://localhost:3001");
 });
