@@ -1,10 +1,11 @@
 const { createOSMStream } = require("osm-pbf-parser-node");
 const path = require("path");
 const fs = require("fs");
+const { type } = require("os");
 const TinyQueue = require("tinyqueue").default || require("tinyqueue");
 
 // 1. Setup paths and data storage
-const PBF_FILE = path.join(__dirname, "NewDelhi.osm.pbf");
+const PBF_FILE = path.join(__dirname, "Sodepur_DumDum.pbf");
 const nodes = new Map();
 const graph = new Map();
 
@@ -15,18 +16,18 @@ const graph = new Map();
 // const endCoords = { lat: 28.6475, lon: 77.2228 }; // Qutub Minar
 
 // Delhi Boundry check
-function checkDelhiBoundary(lat, lon) {
-  const Delhi_Bounds = {
-    north: 28.88,
-    south: 28.4,
-    west: 76.84,
-    east: 77.35,
+function checkBengalBoundary(lat, lon) {
+  const Bengal_Bounds = {
+    north: 22.80, // Khardah / Titagarh side (Thoda aur upar kar diya)
+    south: 22.60, // Dum Dum / Airport side
+    west: 88.35,  // Hooghly River / BT Road stretch
+    east: 88.45,  // Jessore Road / Madhyamgram stretch
   };
   return (
-    lat >= Delhi_Bounds.south &&
-    lat <= Delhi_Bounds.north &&
-    lon >= Delhi_Bounds.west &&
-    lon <= Delhi_Bounds.east
+  lat >= Bengal_Bounds.south &&
+    lat <= Bengal_Bounds.north &&
+    lon >= Bengal_Bounds.west &&
+    lon <= Bengal_Bounds.east
   );
 }
 
@@ -54,22 +55,23 @@ async function buildGraph() {
     } else if (item.type === "way" && item.tags && item.tags.highway) {
       for (let i = 0; i < item.refs.length - 1; i++) {
         const u = item.refs[i],
-          v = item.refs[i + 1];
+        v = item.refs[i + 1];
         const uCoord = nodes.get(u),
-          vCoord = nodes.get(v);
-
+        vCoord = nodes.get(v);
+        
+        const roadTypes = item.tags.highway || "unclassified";
         if (uCoord && vCoord) {
           const d = haversine(uCoord, vCoord);
 
           if (!graph.has(u)) graph.set(u, []);
-          graph.get(u).push({ to: v, weight: d });
+          graph.get(u).push({ to: v, weight: d, type : roadTypes });
 
           if (item.tags.oneway === "-1") {
             if (!graph.has(v)) graph.set(v, []);
-            graph.get(v).push({ to: u, weight: d });
+            graph.get(v).push({ to: u, weight: d, type : roadTypes });
           } else if (item.tags.oneway !== "yes") {
             if (!graph.has(v)) graph.set(v, []);
-            graph.get(v).push({ to: u, weight: d });
+            graph.get(v).push({ to: u, weight: d, type : roadTypes });
           }
         }
       }
@@ -94,10 +96,10 @@ function findNearestNode(lat, lon) {
 }
 
 // 5. Dijkstra Algorithm (Using TinyQueue)
-function dijkstra(startId, endId) {
+function dijkstra(startId, endId, mode  ) {
   const distances = new Map();
   const prev = new Map();
-
+    
   // Min-heap sorted by distance (index 1)
   const pq = new TinyQueue([[startId, 0]], (a, b) => a[1] - b[1]);
   distances.set(startId, 0);
@@ -114,12 +116,14 @@ function dijkstra(startId, endId) {
     if (d > (distances.get(u) ?? Infinity)) continue;
 
     const neighbors = graph.get(u) || [];
-    for (const { to: v, weight } of neighbors) {
-      const alt = d + weight;
-      if (alt < (distances.get(v) ?? Infinity)) {
-        distances.set(v, alt);
-        prev.set(v, u);
-        pq.push([v, alt]);
+    for (const edge of neighbors) {
+      const smartWeight = calculateSmartWeight(mode, edge);
+      if(smartWeight === Infinity) continue // Skip non-traversable edges for the mode
+      const alt = d + smartWeight;
+      if (alt < (distances.get(edge.to) ?? Infinity)) {
+        distances.set(edge.to, alt);
+        prev.set(edge.to, u);
+        pq.push([edge.to, alt]);
       }
     }
   }
@@ -133,7 +137,7 @@ function dijkstra(startId, endId) {
   return pathArr.reverse();
 }
 
-function savePathToGeoJSON(pathIds, filename = "route.geojson") {
+function savePathToGeoJSON(pathIds, distanceKM, totalMinutes, filename = "route.geojson") {
   const coords = pathIds
     .map((id) => nodes.get(id))
     .filter((c) => c)
@@ -142,10 +146,17 @@ function savePathToGeoJSON(pathIds, filename = "route.geojson") {
   // WRAPPER: This makes it a valid FeatureCollection
   const geojson = {
     type: "FeatureCollection",
+    pathArray: pathIds, // Original path of node IDs
+    metaData: {
+      distance: distanceKM, // 12.55 KM
+        duration: Math.round(totalMinutes), // 25 mins
+        unit: "KM"
+    },
     features: [
       {
         type: "Feature",
-        properties: { name: "New Delhi Route" },
+        properties: { name: "Bengal Route" },
+        distance: distanceKM, 
         geometry: {
           type: "LineString",
           coordinates: coords,
@@ -194,8 +205,16 @@ async function initGraph() {
   }
 }
 
-async function getRoute(startLat, startLon, endLat, endLon) {
-  console.log("Boundary check skipped (debug mode)");
+async function getRoute(startLat, startLon, endLat, endLon, mode = "car") {
+  
+  
+  // 1. Boundary Check Call karein
+  if (!checkBengalBoundary(startLat, startLon) || !checkBengalBoundary(endLat, endLon)) {
+      console.log("Error: Coordinates are outside the allowed North 24 Pgs area!");
+      throw new Error("Coordinates outside allowed region");
+  }
+  console.log("Boundary check passed!");
+  //console.log("Boundary check skipped (debug mode)");
   console.log("ROUTE INPUT COORDS:");
   console.log("START:", startLat, startLon);
   console.log("END:", endLat, endLon);
@@ -210,7 +229,31 @@ async function getRoute(startLat, startLon, endLat, endLon) {
   if (!start || !end) {
     throw new Error("Invalid coordinates");
   }
-  const pathIds = dijkstra(start, end);
+  const pathIds = dijkstra(start, end, mode);
+
+let distanceMeter = 0;
+for(let i = 0; i < pathIds.length - 1; i++) {
+    const u = pathIds[i];
+    const v = pathIds[i+1];
+    const edge = graph.get(u)?.find(e => e.to === v);
+    if(edge) distanceMeter += edge.weight;
+}
+
+const distanceKM = (distanceMeter / 1000).toFixed(2);
+
+// Sahi Speed Logic
+const modeSpeeds = {
+    car: 40,   // Car thoda tez
+    bike: 25,  // Bike traffic ke sath
+    bus: 20,   // Bus slow stopping ke sath
+    foot: 5    // Walking speed
+};
+
+const currentSpeed = modeSpeeds[mode] || 30; // Agar mode missing ho to 30
+const totalMinutes = (distanceKM * 60) / currentSpeed;
+
+console.log(`Mode: ${mode}, Speed: ${currentSpeed} km/h`);
+console.log(`Total Distance: ${distanceKM} km, Duration: ${Math.round(totalMinutes)} mins`);
   if (!pathIds || pathIds.length <= 1) {
     throw new Error("No path found between those coordinates");
   }
@@ -219,14 +262,22 @@ async function getRoute(startLat, startLon, endLat, endLon) {
     .filter((c) => c)
     .map((c) => [c.lon, c.lat]);
   console.log("TOTAL COORDINATES IN ROUTE:", coords.length);
-  savePathToGeoJSON(pathIds);
-  console.log("Save Result in GEOJSON", pathIds);
+  savePathToGeoJSON(pathIds, distanceKM, totalMinutes, filename = "route.geojson");
+  console.log("Save Result in GEOJSON", pathIds, distanceKM, totalMinutes);
   return {
     type: "FeatureCollection",
+    pathArray: pathIds, // Original path of node IDs
+    metaData: {
+      distance : distanceKM,
+      duration: Math.round(totalMinutes),
+      unit: "KM"
+    },
     features: [
       {
         type: "Feature",
-        properties: { name: "New Delhi Route" },
+        properties: { name: "Bengal Route" },
+        distance: distanceKM,
+        duration: Math.round(totalMinutes),
         geometry: {
           type: "LineString",
           coordinates: coords,
@@ -234,6 +285,36 @@ async function getRoute(startLat, startLon, endLat, endLon) {
       },
     ],
   };
+}
+ function calculateSmartWeight(mode, edge) {
+let type = edge.type;
+let distance  = edge.weight; // Original distance in meters
+
+  if(mode === "car"){
+    // For Car, we can add traffic data or road conditions here
+    if(type === "footpath" || type === "cycleway" || type === "pedestrian" || type === "path") return Infinity;
+    if(type === "residential" || type === "service") return distance*3;
+ return distance;
+  }
+  if(mode === "bike") {
+    // For Bike, we can prefer bike lanes and avoid highways
+    if(type === "residential" || type === "service") return distance*0.7;
+return distance;
+  }
+  if(mode === "bus"){
+    // For Bus, we can prefer main roads and avoid narrow streets
+    if(type === "primary" || type === "secondary") return distance*0.8;
+    if(type === "residential" || type === "service") return distance*2;
+    if(type !== "primary" && type !== "motorway") return distance*20; // Avoid non-main roads for buses
+  return distance;
+  }
+  if(mode === "foot"){
+    if(type === "footpath" || type === "pedestrian" || type === "path") return distance*0.5; // Prefer footpaths
+    if(type === "residential" || type === "service") return distance*1.5; // Slightly less preferred
+    if(type === "primary" || type === "motorway") return distance*10; // Avoid highways for pedestrians
+  return distance;
+  }
+  return distance; // Default weight is the original distance
 }
 module.exports = {
   dijkstra,

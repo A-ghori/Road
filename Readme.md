@@ -1,1 +1,2 @@
-Hello Fuckers  I am the only one mf god gifted programer ever created I got this power from divine intellect 
+Hello Mother Fuckers  I am the only one mf god gifted programer ever created I got this power from divine intellect 
+                          --SHUBHAYU BARUA

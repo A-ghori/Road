@@ -7,12 +7,13 @@ const roadRoute = require("./Routes/Road_Routes");
 
 const app = express();
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3002"],
+  origin: ["http://localhost:3000","http://localhost:3001", "http://localhost:3002"],
+  methods: ["GET", "POST"],
   credentials: true
 }));
 app.use(express.json());
 
-const PORT = process.env.PORT || 3001;
+//const PORT = process.env.PORT || 3001;
 
 // All app.use routes
 

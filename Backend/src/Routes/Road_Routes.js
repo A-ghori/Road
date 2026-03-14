@@ -8,10 +8,10 @@ router.post("/route", async (req, res) => {
     console.log("Route POST API hit");
     console.log("Body:", req.body);
 
-    const { start, end} = req.body;
+    const { start, end, mode} = req.body;
 
-    if (!start || !end) {
-      return res.status(400).json({ error: "Missing coordinates" });
+    if (!start || !end || !mode) {
+      return res.status(400).json({ error: "Missing coordinates or mode" });
     }
 const startCoords = await geoCodePlace(start);
 const endCoords = await geoCodePlace(end);
@@ -20,7 +20,8 @@ const endCoords = await geoCodePlace(end);
       parseFloat(startCoords.lat),
       parseFloat(startCoords.lon),
       parseFloat(endCoords.lat),
-      parseFloat(endCoords.lon)
+      parseFloat(endCoords.lon),
+      mode
     );
 
     console.log("Route calculated successfully (POST)");
@@ -37,9 +38,9 @@ router.get("/route", async (req, res) => {
   try {
     console.log("Route GET API hit");
 
-    const { start , end } = req.query;
+    const { start , end, mode } = req.query;
 
-    if (!start || !end) {
+    if (!start || !end || !mode) {
       return res.status(400).json({ error: "Missing query parameters" });
     }
 const geoStart = await geoCodePlace(start);
@@ -52,7 +53,9 @@ console.log("END GEOCODE:", geoEnd);
       parseFloat(geoStart.lat),
       parseFloat(geoStart.lon),
       parseFloat(geoEnd.lat),
-      parseFloat(geoEnd.lon)
+      parseFloat(geoEnd.lon),
+      mode
+
     );
 
     console.log("Route calculated successfully (GET)");
