@@ -3,12 +3,12 @@ import { useState } from "react";
 export function useRoute() {
     const [route, setRoute] = useState(null);
 
-    const fetchRoute = async (start, end) => {
-        if (!start || !end) return null;
+    const fetchRoute = async (start, end, mode) => {
+        if (!start || !end || !mode) return null;
 
         try {
             // Lat, Lon ke beech se space hatane ke liye trim use karein
-            const res = await fetch(`http://localhost:3001/api/route?start=${start.trim()}&end=${end.trim()}`);
+            const res = await fetch(`http://localhost:3001/api/route?start=${start.trim()}&end=${end.trim()}&mode=${mode}`);
             
             if (!res.ok) throw new Error("Failed to fetch route");
 

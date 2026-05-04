@@ -1,153 +1,190 @@
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import React, {useRef} from 'react'
 import "leaflet/dist/leaflet.css";
-import { useState , useEffect} from "react";
-import  {useSocketLocation}  from "../Map_Rotes/userSocketLocation";
-import  {useRoute}  from "../Map_Rotes/useRoute";
-import RouteLayer from "../Map_Rotes/RouteLayer";
-import * as geolib from 'geolib';
-import {getDistance, getPathLength }from 'geolib/es/getDistance';
+import L from "leaflet";
+import axios from 'axios';
+import { useState, useEffect } from 'react';
+import { Button } from 'react-bootstrap';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import "leaflet/dist/leaflet.css";
+import { useSocketLocation} from '../Map_Rotes/userSocketLocation';
+import { useRoute } from '../Map_Rotes/useRoute';
+import RouteLayer from '../Map_Rotes/RouteLayer';
+import { useMap } from 'react-leaflet';
 
+const LiveMap = () => {
+  
+  const {position} = useSocketLocation();
 
+  const [destination, setDestination] = useState(null);
+  //const {route, fetchRoute} = useRoute()
+  const [route, setRoute] = useState(null);
+  const[query, setQuery] = useState('');
+  const [from, setFrom] = useState(null);
+  const [to, setTo] = useState(null);
+  const [mode, setMode] = useState('car');
+  
+  
+  // Click and set destination
+  //function MapClickHandler(){
+  //  useMapEvents({
+  //    click(e){
+  //      const {lat, lng} = e.latlng;
+  //      console.log(lat,lng);
+  //      setDestination([lat, lng]);
+  //    }
+  //  })
+  //}
 
-function LiveMap() {
-  const { position, users, rotation } = useSocketLocation();
-  const { route, fetchRoute, setRoute } = useRoute();
-  const [loading, setLoading] = useState(false);
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [stats, setStats] = useState({distance: "null", duration: "null"});
-  const [errorMsg, setErrorMsg] = useState(null);
+// async function searchRoute(){
+//   if(!query) return;
+//   try{
+//     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}`;
+//    const res = await fetch(url);
+//    const data = await res.json();
+//
+//    if(data.length > 0) {
+//      const place = data[0];
+//      const lat = parseFloat(place.lat);
+//      const lon = parseFloat(place.lon);
+//      setDestination([lat, lon]);
+//    }
+// 
+//    } catch (error){
+//      console.error("Error searching location:", error);
+//    }
+// }
 
-
-const updateProgress = (userLat, userLon, routeData) => {
-  const pathArray = routeData?.features?.[0]?.geometry?.coordinates?.map(c => ({
-    latitude: c[1],
-    longitude: c[0]
-  })) 
-  if(!pathArray) return;
-
-  if(!pathArray || pathArray.length === 0) return 0;
-    const nearest = geolib.findNearest({latitude: userLat, longitude: userLon}, pathArray);
-    const preciseDistance = geolib.getPreciseDistance(
-      {
-        latitude : userLat,
-        longitude: userLon,
+const handleRoute = async () => {
+  if(!from || ! to) return 
+  setRoute(null);
+  try{
+    const res = await fetch("http://localhost:3001/api/route", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      {
-        latitude : nearest.latitude,
-        longitude: nearest.longitude,
-      }
-    )
-    console.log("Precise Distance to Path:", preciseDistance, "meters");
-    //const index = pathArray.indexOf(nearest);
-  const index = pathArray.findIndex(p=> p.latitude === nearest.latitude && p.longitude === nearest.longitude);
-
-
-      // calculate remaining path distance
-      const remainingDistance = pathArray.slice(index)
-      const remainingDistanceMeters = getPathLength(remainingDistance);
-      console.log("Remaining Distance on Path:", remainingDistanceMeters, "meters");
-
-        setStats({
-          distance: (remainingDistanceMeters / 1000).toFixed(2), // Convert to KM
-          duration: Math.round((remainingDistanceMeters / 1000) * 60 / 30) // Assuming avg speed of 30 km/h
-        })
-
-    }
-
-useEffect(() => {
-  if(position && route) {
-    updateProgress(position[0], position[1], route);
-
+      body: JSON.stringify({
+        start: from,
+        end: to,
+        mode: mode
+      })
+    })
+    const data = await res.json();
+    console.log("Route Data:", data);
+    setRoute(data);
+  } catch (error){
+    console.error("Error fetching route:", error);
+    //fetchRoute();
   }
-}, [position, route])
-
-const handleGetRoute = async () => {
-  setLoading(true);
-  setRoute(null); // clear previous route immediately for better UX
-  setErrorMsg(null); // clear previous errors
-  try {
-    const result = await fetchRoute(start,end);
-    setLoading(false);
-    if(result) {
-      setErrorMsg(null);
-      setStats({
-        distance: result.distance || "N/A",
-        duration: result.duration || "N/A"
-      });
-    } else {
-      setStats({distance: "null", duration: "null"});
-    setErrorMsg("Bakchodi Na Mere Orginal Location De BSDK!");
-    }
-  } catch (error) {
-    setErrorMsg("An error occurred while fetching the route. Please try again.");
-    console.log(error);
-   }
 }
 
+//useEffect(() => {
+//  if(!position || !destination) return;
+//const fetchRoute = async () => {
+//  try{
+//  const url = `https://router.project-osrm.org/route/v1/driving/${position[1]},${position[0]};${destination[1]},${destination[0]}?overview=full&geometries=geojson`
+//
+//  const response = await fetch(url);
+//   const data = await response.json()
+//
+//      setRoute(data.routes[0].geometry);
+//      console.log("Route Data:", data);
+//
+//  } catch (error) {
+//    console.error("Error fetching route:", error);
+//  }
+//}
+//fetchRoute();
+//
+//  },[position, destination])
+
+
+  function MapUpdater({position}){
+    const map = useMap();
+
+    useEffect(() => {
+      if(!position) return;
+      
+      map.whenReady(() => {
+        map.flyTo(position, 16)
+      })
+    },[position, map])
+    return null;
+  }
+
+
+
+const mapRef = useRef(null);
+
+ 
+//useEffect(() => {
+//  if(position && mapRef.current){
+//    mapRef.current.setView(position, 15);
+//    console.log(position)
+//  }
+//},[position])
+
+ 
+  
   return (
-    <div style={{ height: "100vh" }}>
-      <div style={{ padding: 10 }}>
-        <input
-          placeholder="Start"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-        />
-        <input
-          placeholder="End"
-          value={end}
-          onChange={(e) => setEnd(e.target.value)}
-        />
-        <button onClick={() => handleGetRoute(start, end)}>
-          {loading ? "Searching...": "Get Route"}
-        </button>
-      </div>
+     <div>
+    <div style={{
+      position: "absolute",
+      top: 10,
+      left:10,
+      zIndex: 1000,
+      background: "white",
+      padding: "10px",
+      borderRadius: "5px",
+      boxShadow: "0 0 10px rgba(0,0,0,0.3)"
+     }}>
+      <input 
+      type='text'
+      placeholder='From..'
+      value={from}
+      onChange={(e) => setFrom(e.target.value)}
+/>
+<br />
+<input 
+type='text'
+placeholder='to...'
+value={to}
+onChange={(e) => setTo(e.target.value)}
+></input>
+<br/>
 
-{errorMsg && (
-  <div style={{
-    color: "white",
-    background: "#ef4444", // Red color for error
-    padding: "10px",
-    marginTop: "10px",
-    borderRadius: "5px",
-    textAlign: "center",
-    fontWeight: "bold"
-  }}>
-    ⚠️ {errorMsg}
-  </div>
-)}
+<select value={mode} onChange={(e) => setMode(e.target.value)} >
 
-      {/* Stats Display Card */}
-      {stats.distance && (
-        <div style={{
-          position: "absolute", bottom: 20, right: 20, zIndex: 1000,
-          background: "white", padding: "15px", borderRadius: "10px",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.2)", minWidth: "150px"
-        }}>
-          <h4 style={{ margin: "0 0 10px 0", color: "#333" }}>Route Details</h4>
-          <p style={{ margin: "5px 0" }}><b>Distance:</b> {stats.distance} km</p>
-          <p style={{ margin: "5px 0" }}><b>Time:</b> {stats.duration} mins</p>
-        </div>
-      )}
+<option value="car">Car</option>
+<option value="bike">Bike</option>
+<option value="bus">bus</option>
+<option value="walk">Walk</option>
 
 
-    <MapContainer
-center={[22.700, 88.390]}
-        zoom={15}
-        style={{ height: "90vh" }}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+</select>
+<br/>
+<button onClick={handleRoute}>Get Route</button>
+     </div>
 
-        {position && <Marker position={position} />}
+     
 
-        {Object.entries(users).map(([id, coords]) => (
-          <Marker key={id} position={coords} />
-        ))}
+  <MapContainer center={position ||[22.57, 88.36] }
+  zoom={15}
+  whenCreated={(map) => (mapRef.current = map)}
+  style={{ height: "500px", width: "100%" }}
+>
+  <MapUpdater position={position} />
+   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        <RouteLayer route={route} />
-      </MapContainer>
+
+{position  && !route && <Marker position={position} /> }
+{/*<MapClickHandler setDestination={setDestination}></MapClickHandler> */}
+{destination && <Marker position={destination} />}
+{route && <RouteLayer route={route}/>
+}
+</MapContainer>
     </div>
-  );
+  )
 }
 
-export default LiveMap;
+export default LiveMap

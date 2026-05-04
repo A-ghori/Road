@@ -21,7 +21,20 @@ export default function RouteLayer ({
     route
 }) {
     const map = useMap();
+// 1. Icons Define Karein (Function ke andar)
+    const startIcon = L.divIcon({
+        html: `<div style="background:#22c55e; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`,
+        className: "",
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+    });
 
+    const endIcon = L.divIcon({
+        html: `<div style="background:#ef4444; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`,
+        className: "",
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+    });
     useEffect(() => {
         if (!route || !route.features || !route.features.length) return;
 
@@ -44,11 +57,19 @@ const end = [coords[coords.length - 1][1], coords[coords.length - 1][0]];
 
  return (
     <>
-      <GeoJSON data={route} style={{ color: "blue", weight: 5 }} />
-      <Marker position={start} />
-      <Marker position={end} />
+      <GeoJSON 
+        data={route} 
+        style={{ color: "#3b82f6", weight: 6, opacity: 0.7 }} 
+        pointToLayer={() => null} // GeoJSON ke auto-markers hide karo
+      />
+      
+      {/* Start Marker - Green Dot */}
+      <Marker position={start} icon={startIcon} interactive={false} />
+      
+      {/* End Marker - Red Dot */}
+      <Marker position={end} icon={endIcon} interactive={false} />
     </>
-  );
+);
 }
 
 

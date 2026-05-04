@@ -4,7 +4,7 @@ const cors = require("cors");
 const adminRoutes = require("./Routes/adminRoutes");
 const authRoutes = require("./Routes/publicRoutes");
 const roadRoute = require("./Routes/Road_Routes");
-
+const sensorRoutes = require("./Routes/sensorRoutes");
 const app = express();
 app.use(cors({
   origin: ["http://localhost:3000","http://localhost:3001", "http://localhost:3002"],
@@ -20,5 +20,5 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", adminRoutes);
 app.use("/api", roadRoute);
-
+app.use("/api/sensor", sensorRoutes);
 module.exports = app;

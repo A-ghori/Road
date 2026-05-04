@@ -17,7 +17,9 @@ export function useSocketLocation ()  {
             
             // Update current users position
             setPosition([latitude, longitude]);
-            
+            console.log("Current Location:", latitude, longitude, "Heading:", heading);
+            console.log("TYPE:", typeof position);
+
             setRotation(heading || 0) // For move the blue dot in the direction of movement, if heading is not available, default to 0
 
             // Emmit location to server
@@ -44,6 +46,7 @@ export function useSocketLocation ()  {
     );
 
         socket.on("received location",(data) => {
+            console.log('Current Location', data.lat, data.lng)
             setUsers((prev) => ({
                 ...prev,
                 [data.id]:[data.lat, data.lng, data.heading]
@@ -64,5 +67,10 @@ export function useSocketLocation ()  {
         }
     }, []);
     
+
+    useEffect(() => {
+    console.log("UPDATED POSITION:", position);
+}, [position]);
+
     return {position, users, rotation};
 }
