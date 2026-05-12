@@ -9,8 +9,8 @@ const app = express();
 app.use(express.json());
 app.use(cors({
   origin: [
+    "https://road-jit2.vercel.app",
     "http://localhost:3000", // this is frontend url
-   "https://road-jit2.vercel.app"
   ],
   credentials: true
 }));
