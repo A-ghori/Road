@@ -42,7 +42,7 @@ export function useSocketLocation ()  {
             console.error("Error getting Location:", err);
         },
         {enableHighAccuracy: true, // Use GPS for better accuracy
-            maximumAge: 10000, // Cache location for 10 seconds
+            maximumAge: 1000, // Cache location for 1 seconds
             timeout: 5000, // Timeout after 5 seconds
             distanceFilter: 1 // Only update if user has moved at least 1 meters
         }
