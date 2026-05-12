@@ -1,71 +1,79 @@
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
 
-// Socket ko hook ke bahar rakho taaki component re-render par naya connection na bane
 const socket = io(process.env.REACT_APP_BACKEND_URL, {
   withCredentials: true,
-  transports: ["websocket", "polling"], // Polling fallback ke liye rakho
+  transports: ["websocket"],
 });
 
-export function useSocketLocation() {
-  const [position, setPosition] = useState(null);
-  const [users, setUsers] = useState({});
-  const [rotation, setRotation] = useState(0);
+export function useSocketLocation ()  {
+    const [position, setPosition] = useState(null);
+    const [users, setUsers] = useState({});
+    const [rotation , setRotation] = useState(0);
 
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      console.error("Geolocation not supported");
-      return;
-    }
+    useEffect(() => {
+        if(!navigator.geolocation){
+            return
+        }
+        const watchId = navigator.geolocation.watchPosition((pos) => {
+            const { latitude, longitude, heading } = pos.coords;
+            
+            // Update current users position
+            setPosition([latitude, longitude]);
+            console.log("Current Location:", latitude, longitude, "Heading:", heading);
+            console.log("TYPE:", typeof position);
 
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, heading } = pos.coords;
-        const newPos = [latitude, longitude];
+            setRotation(heading || 0) // For move the blue dot in the direction of movement, if heading is not available, default to 0
 
-        setPosition(newPos);
-        setRotation(heading || 0);
+            // Emmit location to server
+            socket.emit("Update Location", {
+               lat : latitude,
+                lng : longitude,
+                heading
+            });
 
-        // Sirf ek hi event bhejo jo backend handle kar raha hai
-        socket.emit("Send Location", {
-          lat: latitude,
-          lng: longitude,
-          heading: heading || 0,
-        });
-      },
-      (err) => console.error("GPS Error:", err),
-      {
-        enableHighAccuracy: true,
-        maximumAge: 1000, // 10s bohot zyada hai, 1s rakho real-time ke liye
-        timeout: 10000,
-        distanceFilter: 1,
-      }
+            socket.emit("Send Location", {
+                lat : latitude,
+                lng : longitude,
+                heading
+            });
+        }, 
+        (err) => {
+            console.error("Error getting Location:", err);
+        },
+        {enableHighAccuracy: true, // Use GPS for better accuracy
+            maximumAge: 10000, // Cache location for 10 seconds
+            timeout: 5000, // Timeout after 5 seconds
+            distanceFilter: 1 // Only update if user has moved at least 1 meters
+        }
     );
 
-    // Dhyaan se: Backend mein 'recived' hai ya 'received'? 
-    // Jo backend mein hai wahi yahan likhna.
-    socket.on("recived location", (data) => {
-      setUsers((prev) => ({
-        ...prev,
-        [data.id]: [data.lat, data.lng, data.heading],
-      }));
-    });
+        socket.on("received location",(data) => {
+            console.log('Current Location', data.lat, data.lng)
+            setUsers((prev) => ({
+                ...prev,
+                [data.id]:[data.lat, data.lng, data.heading]
+            }))
+        });
+        socket.on("User Disconnected", (data) => {
+            setUsers((prev) => {
+                const updated = { ...prev};
+                delete updated[data.id];
+                return updated;
+            })
+        });
 
-    // Backend mein check karo 'user disconnected' hai ya 'User Disconnected'
-    socket.on("user disconnected", (data) => {
-      setUsers((prev) => {
-        const updated = { ...prev };
-        delete updated[data.id];
-        return updated;
-      });
-    });
+        return () => {
+            navigator.geolocation.clearWatch(watchId);
+            socket.off("received location");
+            socket.off("User Disconnected");
+        }
+    }, []);
+    
 
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-      socket.off("recived location");
-      socket.off("user disconnected");
-    };
-  }, []);
+    useEffect(() => {
+    console.log("UPDATED POSITION:", position);
+}, [position]);
 
-  return { position, users, rotation };
+    return {position, users, rotation};
 }
