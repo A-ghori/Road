@@ -8,5 +8,5 @@ require("dotenv").config();
 connectDb();
   
 server.listen(process.env.PORT || 3005,"0.0.0.0", () => {
-  console.log(`Server running on http://10.75.164.188:${process.env.PORT || 3005}`);
+  console.log(`Server running on ${process.env.PORT || 3005}`);
 });
