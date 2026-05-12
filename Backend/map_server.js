@@ -9,12 +9,11 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://road-jit2.vercel.app"
-    ],
+    origin: ["http://localhost:3000", "https://road-jit2.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling'] // Dono allow karo for stability
 });
 // view engine
 app.set("view engine", "ejs");

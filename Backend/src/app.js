@@ -8,10 +8,7 @@ const sensorRoutes = require("./Routes/sensorRoutes");
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: [
-    "https://road-jit2.vercel.app",
-    "http://localhost:3000", // this is frontend url
-  ],
+  origin: ["http://localhost:3000", "https://road-jit2.vercel.app"],
   credentials: true
 }));
 
