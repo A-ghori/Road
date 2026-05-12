@@ -3,7 +3,7 @@ import io from "socket.io-client";
 
 const socket = io(process.env.REACT_APP_BACKEND_URL, {
   withCredentials: true,
-  transports: ["websocket"],
+  transports: ["websocket", "pooling"],
 });
 
 export function useSocketLocation ()  {
@@ -42,7 +42,7 @@ export function useSocketLocation ()  {
             console.error("Error getting Location:", err);
         },
         {enableHighAccuracy: true, // Use GPS for better accuracy
-            maximumAge: 1000, // Cache location for 1 seconds
+            maximumAge: 10000, // Cache location for 10 seconds
             timeout: 5000, // Timeout after 5 seconds
             distanceFilter: 1 // Only update if user has moved at least 1 meters
         }
