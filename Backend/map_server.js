@@ -10,8 +10,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
+      "https://road-jit2.vercel.app",
       "http://localhost:3000",
-      "https://situations-knight-worth-latest.trycloudflare.com",
     ],
     methods: ["GET", "POST"],
     credentials: true

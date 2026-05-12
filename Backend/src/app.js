@@ -10,7 +10,7 @@ app.use(express.json());
 app.use(cors({
   origin: [
     "http://localhost:3000", // this is frontend url
-    "https://situations-knight-worth-latest.trycloudflare.com",
+   "https://road-jit2.vercel.app"
   ],
   credentials: true
 }));
