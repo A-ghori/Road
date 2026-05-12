@@ -154,7 +154,7 @@ function medium(x) {
        
        
         return {
-            force: smoothVibration.toFixed(3),
+            force: smoothVibration,
             damageLevel: findalDecision.label,
             confidence: findalDecision.confidence
         }

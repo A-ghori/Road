@@ -10,20 +10,22 @@ import { useSocketLocation} from '../Map_Rotes/userSocketLocation';
 import { useRoute } from '../Map_Rotes/useRoute';
 import RouteLayer from '../Map_Rotes/RouteLayer';
 import { useMap } from 'react-leaflet';
-
+import useSensorApi from '../Gyro/sensor'
+import { io } from "socket.io-client";
 const LiveMap = () => {
   
   const {position} = useSocketLocation();
-
+  const {damage} = useSensorApi()
   const [destination, setDestination] = useState(null);
   //const {route, fetchRoute} = useRoute()
   const [route, setRoute] = useState(null);
   const[query, setQuery] = useState('');
-  const [from, setFrom] = useState(null);
-  const [to, setTo] = useState(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [mode, setMode] = useState('car');
+  const [damagePoints, setDamagePoints] = useState([]);
   
-  
+//const BACKEND_URL = "http://localhost:3001";
   // Click and set destination
   //function MapClickHandler(){
   //  useMapEvents({
@@ -54,11 +56,39 @@ const LiveMap = () => {
 //    }
 // }
 
+
+
+
+// For Get Route Fetch All Datas
+useEffect (() => {
+  async function GetfetchHistory() {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/sensor/all-potholes`, {
+        method : "GET",
+      })
+      const data = await res.json();
+
+      console.log("API RESPONSE", data)
+      const historyPoints = data.features
+      .filter(f => f && f.geometry && f.geometry.coordinates)
+      .map (p => ({
+        lat: p.geometry.coordinates[1],
+        lng: p.geometry.coordinates[0],
+        level: p.properties.damageLevel || 'Medium'
+      }))
+      setDamagePoints(historyPoints)
+    }
+ catch (error) {
+  console.error("History fetch failed:", error);
+}
+}
+GetfetchHistory()
+}, [])
 const handleRoute = async () => {
   if(!from || ! to) return 
   setRoute(null);
   try{
-    const res = await fetch("http://localhost:3001/api/route", {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/route`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -113,6 +143,46 @@ const handleRoute = async () => {
   }
 
 
+  function getDamageIcon(level) {
+    let color = String;
+    if(level === 'Low') color = "green"
+    if(level === 'Medium') color = "orange";
+    if(level === 'High') color = 'red';
+
+ return L.divIcon({
+    html: `<div style="
+      background:${color};
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      border:2px solid white;
+    "></div>`
+  }); 
+  }
+  
+  useEffect (() =>{
+    if(!damage) return;
+
+    setDamagePoints(prev => {
+      const last = prev[prev.length - 1]
+      
+      if(
+        last && 
+        Math.abs(last.lat - damage.lat) < 0.00005 &&
+        Math.abs(last.lng - damage.lng) < 0.00005
+      ) {
+        return prev;
+      }
+return  [
+  ...prev,
+  {
+    lat : damage.lat,
+    lng : damage.lng,
+    level : damage.level
+  }
+]
+    })
+  }, [damage])
 
 const mapRef = useRef(null);
 
@@ -175,7 +245,19 @@ onChange={(e) => setTo(e.target.value)}
 >
   <MapUpdater position={position} />
    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
+{damagePoints.map((point, i) => {
+  if(!point || point.lat === undefined || point.lng === undefined){
+    return null
+  }
+  
+  return (
+    <Marker
+      key={i}
+      position={[point.lat, point.lng]}
+      icon={getDamageIcon(point.level)}
+    />
+  );
+})}
 
 {position  && !route && <Marker position={position} /> }
 {/*<MapClickHandler setDestination={setDestination}></MapClickHandler> */}

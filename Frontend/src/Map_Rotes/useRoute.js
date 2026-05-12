@@ -8,7 +8,7 @@ export function useRoute() {
 
         try {
             // Lat, Lon ke beech se space hatane ke liye trim use karein
-            const res = await fetch(`http://localhost:3001/api/route?start=${start.trim()}&end=${end.trim()}&mode=${mode}`);
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/route?start=${start.trim()}&end=${end.trim()}&mode=${mode}`);
             
             if (!res.ok) throw new Error("Failed to fetch route");
 

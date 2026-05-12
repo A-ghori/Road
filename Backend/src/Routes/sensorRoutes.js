@@ -14,9 +14,11 @@ const engineLog = logger.child({ component: 'ANALYSIS_ENGINE' });
 
 const router = express.Router();
 const { analyzeSensor } = require('../Gyro_Accelerometer/gyro');
+const pothole = require('../models/Sensosr.model');
 
-router.post('/sensor-data', (req, res) => {
+ router.post('/sensor-data', async (req, res) => {
     try {
+        console.log("Received Sensor Data:", req.body);
         const { ax, ay, az, lat, lng, speed } = req.body;
 
         // 2. Log incoming data at DEBUG level for development
@@ -30,12 +32,52 @@ router.post('/sensor-data', (req, res) => {
 
         // 3. Process Data via your Engine
         const result = analyzeSensor(ax, ay, az);
+        if(result.damageLevel !== "NONE"){
 
-        const responseData = {
+
+        // Optimization Db (Geo Fence Logic)
+        // checking the potholes count within 5 meter radius 
+        const nearbyCount = await pothole.countDocuments({
+            location : {
+                // near not working because mongo db is expecting distance data must be sorted as the order of distance 
+                /*$near: { */
+                //    $geometry: {
+                //        type: 'Point', 
+                //        coordinates : [lng, lat]
+                //    },
+                //    $maxDistance : 5
+                //}
+                $geoWithin: {
+                    $centerSphere :[[lng, lat], 15 / 6378100] // for 15 meter radius 
+                    
+                }
+            }
+        })
+    console.log(`Nearby points in 5 meters ${nearbyCount}`)
+        // threshold  10 times available 
+        if(nearbyCount >= 10){
+            console.log("Skipping Save: Area already well-mapped (Count: " + nearbyCount + ")");
+                return res.json({ success: true, message: "Limit reached for this spot" });
+            }
+// Else condition 
+            const newDamage = new  pothole({
+                location :{
+                    type : "Point",
+                    coordinates : [lng, lat],
+                },
+                damageLevel : result.damageLevel,
+                force : result.force,
+                speed : result.speed || 0,
+                confidence : result.confidence,
+            })
+            await newDamage.save();
+            console.log("Sensor Data Values are saved in DB", newDamage, result.damageLevel)
+        }
+         const responseData = {
             lat,
             lng,
             speed,
-            force: result.force.toFixed(3),
+            force: Number(result.force).toFixed(2),
             damageLevel: result.damageLevel,
             confidence: result.confidence,
             timestamp: Date.now()
@@ -50,9 +92,11 @@ router.post('/sensor-data', (req, res) => {
             engineLog.info({ force: responseData.force }, "Smooth Road (SIGNAL GREEN)");
         }
 
+
+
         res.json({
             success: true,
-            data: responseData
+            data: result
         });
 
     } catch (err) {
@@ -61,5 +105,32 @@ router.post('/sensor-data', (req, res) => {
         res.status(500).json({ success: false, message: "Internal Engine Error" });
     }
 });
+
+
+router.get('/all-potholes',async(req,res) => {
+    try {
+        
+        const Potholes = await pothole.find({});
+        const geojson = {
+            type : 'FeatureCollection',
+            features : Potholes.map (p => ({
+                type : "Feature",
+                geometry : p.location,
+            properties : {
+                speed : p.speed,
+                damageLevel : p.damageLevel,
+                force : p.force,
+                timestamp : p.timestamp,
+                confidence : p.confidence
+            }
+            })
+        )}
+        res.json(geojson)
+    }catch (error) {
+        res.json(500).jsonp({
+            message : error.message
+        })
+    }
+})
 
 module.exports = router;

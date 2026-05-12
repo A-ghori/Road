@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const { type } = require("os");
 const TinyQueue = require("tinyqueue").default || require("tinyqueue");
-
+const pothole = require ('../models/Sensosr.model')
 // 1. Setup paths and data storage
 const PBF_FILE = path.join(__dirname, "Sodepur_DumDum.pbf");
 const nodes = new Map();
@@ -96,7 +96,7 @@ function findNearestNode(lat, lon) {
 }
 
 // 5. Dijkstra Algorithm (Using TinyQueue)
-function dijkstra(startId, endId, mode  ) {
+function dijkstra(startId, endId, mode, roadDamage) {
   const distances = new Map();
   const prev = new Map();
     
@@ -117,7 +117,7 @@ function dijkstra(startId, endId, mode  ) {
 
     const neighbors = graph.get(u) || [];
     for (const edge of neighbors) {
-      const smartWeight = calculateSmartWeight(mode, edge);
+      const smartWeight = calculateSmartWeight(mode, edge, roadDamage);
       if(smartWeight === Infinity) continue // Skip non-traversable edges for the mode
       const alt = d + smartWeight;
       if (alt < (distances.get(edge.to) ?? Infinity)) {
@@ -207,7 +207,6 @@ async function initGraph() {
 
 async function getRoute(startLat, startLon, endLat, endLon, mode = "car") {
   
-  
   // 1. Boundary Check Call karein
   if (!checkBengalBoundary(startLat, startLon) || !checkBengalBoundary(endLat, endLon)) {
       console.log("Error: Coordinates are outside the allowed North 24 Pgs area!");
@@ -229,7 +228,10 @@ async function getRoute(startLat, startLon, endLat, endLon, mode = "car") {
   if (!start || !end) {
     throw new Error("Invalid coordinates");
   }
-  const pathIds = dijkstra(start, end, mode);
+
+  // MONGO DB CONNECT FIRST MAKE A CLUSTER FIRST 
+  const roadDamageFromDB = await pothole.find({})
+  const pathIds = dijkstra(start, end, mode, roadDamageFromDB);
 
 let distanceMeter = 0;
 for(let i = 0; i < pathIds.length - 1; i++) {
@@ -238,6 +240,7 @@ for(let i = 0; i < pathIds.length - 1; i++) {
     const edge = graph.get(u)?.find(e => e.to === v);
     if(edge) distanceMeter += edge.weight;
 }
+
 
 const distanceKM = (distanceMeter / 1000).toFixed(2);
 
@@ -286,35 +289,65 @@ console.log(`Total Distance: ${distanceKM} km, Duration: ${Math.round(totalMinut
     ],
   };
 }
- function calculateSmartWeight(mode, edge) {
+
+
+
+ function calculateSmartWeight(mode, edge, roadDamage = []) {
 let type = edge.type;
 let distance  = edge.weight; // Original distance in meters
+let penalty = 0;
+
+// Pothole Detection on this edge 
+// The logic of targetValue is edge.to is very near to any kind of potholes(within 20 - 30 meters) update the road weight
+const targetNode = nodes.get(edge.to)
+if (targetNode && roadDamage.length > 0) {
+const potholeNearMe = roadDamage.find(p => {
+  const d =haversine({
+  lat : targetNode.lat,
+  lon : targetNode.lon
+}, {
+  lat : p.lat,
+  lon : p.lon
+} 
+);
+return d < 30
+}) // 30 meters radius
+
+
+if(potholeNearMe){
+if (potholeNearMe.level === 'High') penalty = 1000;
+if(potholeNearMe.level === 'Medium') penalty = 400;
+}
+}
+
+let finalWeight = distance + penalty
+
 
   if(mode === "car"){
     // For Car, we can add traffic data or road conditions here
     if(type === "footpath" || type === "cycleway" || type === "pedestrian" || type === "path") return Infinity;
     if(type === "residential" || type === "service") return distance*3;
- return distance;
+ return finalWeight;
   }
   if(mode === "bike") {
     // For Bike, we can prefer bike lanes and avoid highways
     if(type === "residential" || type === "service") return distance*0.7;
-return distance;
+return finalWeight;
   }
   if(mode === "bus"){
     // For Bus, we can prefer main roads and avoid narrow streets
     if(type === "primary" || type === "secondary") return distance*0.8;
     if(type === "residential" || type === "service") return distance*2;
     if(type !== "primary" && type !== "motorway") return distance*20; // Avoid non-main roads for buses
-  return distance;
+  return finalWeight;
   }
   if(mode === "foot"){
     if(type === "footpath" || type === "pedestrian" || type === "path") return distance*0.5; // Prefer footpaths
     if(type === "residential" || type === "service") return distance*1.5; // Slightly less preferred
     if(type === "primary" || type === "motorway") return distance*10; // Avoid highways for pedestrians
-  return distance;
+  return finalWeight;
   }
-  return distance; // Default weight is the original distance
+  return finalWeight; // Default weight is the original distance
 }
 module.exports = {
   dijkstra,

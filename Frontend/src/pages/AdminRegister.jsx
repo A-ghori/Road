@@ -18,7 +18,7 @@ const AdminRegister = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/auth/admin/register",
+        `${process.env.REACT_APP_BACKEND_URL}/api/auth/admin/register`,
         {
           name: Name,
           email: Email,

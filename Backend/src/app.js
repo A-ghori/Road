@@ -6,12 +6,14 @@ const authRoutes = require("./Routes/publicRoutes");
 const roadRoute = require("./Routes/Road_Routes");
 const sensorRoutes = require("./Routes/sensorRoutes");
 const app = express();
+app.use(express.json());
 app.use(cors({
-  origin: ["http://localhost:3000","http://localhost:3001", "http://localhost:3002"],
-  methods: ["GET", "POST"],
+  origin: [
+    "http://localhost:3000", // this is frontend url
+    "https://situations-knight-worth-latest.trycloudflare.com",
+  ],
   credentials: true
 }));
-app.use(express.json());
 
 //const PORT = process.env.PORT || 3001;
 

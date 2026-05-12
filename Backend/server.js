@@ -6,7 +6,7 @@ const server = require("./map_server")
  
 require("dotenv").config();
 connectDb();
-
-server.listen(3001, () => {
-  console.log("Server running at http://localhost:3001");
+  
+server.listen(process.env.PORT || 3005,"0.0.0.0", () => {
+  console.log(`Server running on http://10.75.164.188:${process.env.PORT || 3005}`);
 });

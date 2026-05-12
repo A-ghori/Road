@@ -9,11 +9,14 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://situations-knight-worth-latest.trycloudflare.com",
+    ],
     methods: ["GET", "POST"],
-  },
+    credentials: true
+  }
 });
-
 // view engine
 app.set("view engine", "ejs");
 
