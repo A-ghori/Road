@@ -8,5 +8,5 @@ require("dotenv").config();
 connectDb();
   
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server is live on port ${PORT}`);
+  console.log(` Server is live on port ${PORT}`);
 });
