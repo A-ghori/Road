@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 
 // Load environment variables (.env file se GOOGLE_MAPS_API_KEY aayegi)
 dotenv.config();
-console.log("Loaded API Key:", process.env.GOOGLE_MAPS_API_KEY ? "FOUND" : "NOT FOUND");
+
 
 // Existing routes
 const adminRoutes = require("./Routes/adminRoutes");
@@ -12,6 +12,7 @@ const authRoutes = require("./Routes/publicRoutes");
 const roadRoute = require("./Routes/Road_Routes");
 //const sensorRoutes = require("./Routes/sensorRoutes");
 const createDamageReport = require("./Routes/damage_Routes");
+const emergencyRoutes = require("./Routes/emergency_routes");
 
 // Naya Places route 
 const placesRoutes = require("./Routes/place_routes");
@@ -39,4 +40,5 @@ app.use("/api", roadRoute);
 //app.use("/api/sensor", sensorRoutes);
 app.use("/api/places", placesRoutes); // -> /api/places/nearby?lat=...&lng=...&type=hospital
 app.use('/api/damage',createDamageReport)
+app.use("/api/emergency-services", emergencyRoutes);
 module.exports = app;
