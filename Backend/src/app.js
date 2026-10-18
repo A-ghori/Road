@@ -10,7 +10,7 @@ dotenv.config();
 const adminRoutes = require("./Routes/adminRoutes");
 const authRoutes = require("./Routes/publicRoutes");
 const roadRoute = require("./Routes/Road_Routes");
-//const sensorRoutes = require("./Routes/sensorRoutes");
+const sensorRoutes = require("./Routes/sensorRoutes");
 const createDamageReport = require("./Routes/damage_Routes");
 const emergencyRoutes = require("./Routes/emergency_routes");
 
@@ -37,7 +37,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", adminRoutes);
 app.use("/api", roadRoute);
-//app.use("/api/sensor", sensorRoutes);
+app.use("/api/sensor", sensorRoutes);
 app.use("/api/places", placesRoutes); // -> /api/places/nearby?lat=...&lng=...&type=hospital
 app.use('/api/damage',createDamageReport)
 app.use("/api/emergency-services", emergencyRoutes);

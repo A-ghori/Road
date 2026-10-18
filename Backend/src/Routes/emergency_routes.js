@@ -63,7 +63,7 @@ router.post("/", async (req, res) => {
                 params: {
                     categories: CATEGORIES.join(","),
                     filter: `rect:${west},${south},${east},${north}`,
-                    limit: 100,
+                    limit: 1000,
                     apiKey
                 },
                 timeout: 20000
