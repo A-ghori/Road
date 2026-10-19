@@ -16,10 +16,13 @@ async function getHostedRoute(startLat, startLng, endLat, endLng, mode="car") {
     }
 
 const costingModes = {
-  car: "auto",
-  bus: "bus",
-  walk: "pedestrian",
-  bike: "bicycle"
+    car: "auto",
+    auto: "auto",
+    bus: "bus",
+    walk: "pedestrian",
+    pedestrian: "pedestrian",
+    bike: "bicycle",
+    bicycle: "bicycle"
 };
 
     const costing = costingModes[mode]
