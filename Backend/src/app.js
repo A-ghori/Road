@@ -13,6 +13,7 @@ const roadRoute = require("./Routes/Road_Routes");
 const sensorRoutes = require("./Routes/sensorRoutes");
 const createDamageReport = require("./Routes/damage_Routes");
 const emergencyRoutes = require("./Routes/emergency_routes");
+const trafficRoutes = require("./Routes/traffic_routes");
 
 // Naya Places route 
 const placesRoutes = require("./Routes/place_routes");
@@ -41,4 +42,5 @@ app.use("/api/sensor", sensorRoutes);
 app.use("/api/places", placesRoutes); // -> /api/places/nearby?lat=...&lng=...&type=hospital
 app.use('/api/damage',createDamageReport)
 app.use("/api/emergency-services", emergencyRoutes);
+app.use("/api/traffic", trafficRoutes);
 module.exports = app;
