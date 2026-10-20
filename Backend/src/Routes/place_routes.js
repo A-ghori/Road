@@ -82,7 +82,12 @@ router.post("/route", async (req,res) => {
       traffic
     })
   } catch (error) {
-      console.error("Route API error:", error.message);
+      console.error("Route API error:", {
+    message: error.message,
+    status: error.response?.status,
+    url: error.config?.url,
+    response: error.response?.data,
+});
 
     res.status(502).json({
       error: error.message || "Failed to calculate route"
