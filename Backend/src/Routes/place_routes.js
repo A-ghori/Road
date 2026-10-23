@@ -17,6 +17,13 @@ router.post("/route", async (req,res) => {
 
   try {
     async function geocode(location) {
+      // if we get the lat, lng direct values from frontend so dont call the nominatim direct return 
+const trimmed = location.trim();
+
+if (/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(trimmed)) {
+  const [lat, lng] = trimmed.split(",").map(Number);
+  return {lat, lng};
+}
       const response = await axios.get(
         "https://nominatim.openstreetmap.org/search",
         {
@@ -54,7 +61,7 @@ router.post("/route", async (req,res) => {
     );
     
     const coordinates = route.features[0].geometry.coordinates;
-    const sampleCount = Math.min(10, coordinates.length);
+    const sampleCount = Math.min(5,  coordinates.length);
     const trafficSamples = []
 
     for (let i = 0; i< sampleCount; i++){

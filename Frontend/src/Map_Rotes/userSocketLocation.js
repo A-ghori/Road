@@ -3,7 +3,7 @@ import io from "socket.io-client";
 
 const socket = io(process.env.REACT_APP_BACKEND_URL, {
   withCredentials: true,
-  transports: ["websocket", "pooling"],
+  transports: ["websocket", "polling"],
 });
 
 export function useSocketLocation ()  {
@@ -15,38 +15,53 @@ export function useSocketLocation ()  {
         if(!navigator.geolocation){
             return
         }
-        const watchId = navigator.geolocation.watchPosition((pos) => {
-            const { latitude, longitude, heading } = pos.coords;
-            
-            // Update current users position
-            setPosition([latitude, longitude]);
-            console.log("Current Location:", latitude, longitude, "Heading:", heading);
-            console.log("TYPE:", typeof position);
+  
+const watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+        const { latitude, longitude, heading, accuracy } = pos.coords;
 
-            setRotation(heading || 0) // For move the blue dot in the direction of movement, if heading is not available, default to 0
+        console.log("GPS reading:", {
+            latitude,
+            longitude,
+            accuracy,
+            timestamp: new Date(pos.timestamp).toLocaleTimeString()
+        });
 
-            // Emmit location to server
-            socket.emit("Update Location", {
-               lat : latitude,
-                lng : longitude,
-                heading
-            });
-
-            socket.emit("Send Location", {
-                lat : latitude,
-                lng : longitude,
-                heading
-            });
-        }, 
-        (err) => {
-            console.error("Error getting Location:", err);
-        },
-        {enableHighAccuracy: true, // Use GPS for better accuracy
-            maximumAge: 10000, // Cache location for 10 seconds
-            timeout: 5000, // Timeout after 5 seconds
-            distanceFilter: 1 // Only update if user has moved at least 1 meters
+        // Reject highly inaccurate location readings.
+        if (!Number.isFinite(accuracy) || accuracy > 100) {
+            console.warn(
+                `Ignoring inaccurate GPS reading: ${accuracy} metres`
+            );
+            return;
         }
-    );
+
+        // Leaflet expects [latitude, longitude].
+        setPosition([latitude, longitude]);
+        setRotation(heading ?? 0);
+
+        socket.emit("Update Location", {
+            lat: latitude,
+            lng: longitude,
+            heading
+        });
+
+        socket.emit("Send Location", {
+            lat: latitude,
+            lng: longitude,
+            heading
+        });
+    },
+    (err) => {
+        console.error("GPS error:", err.code, err.message);
+    },
+    {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 15000
+    }
+);
+
+
 
         socket.on("received location",(data) => {
             console.log('Current Location', data.lat, data.lng)
@@ -63,11 +78,11 @@ export function useSocketLocation ()  {
             })
         });
 
-        return () => {
-            navigator.geolocation.clearWatch(watchId);
-            socket.off("received location");
-            socket.off("User Disconnected");
-        }
+      return () => {
+    navigator.geolocation.clearWatch(watchId);
+    socket.off("received location");
+    socket.off("User Disconnected");
+};
     }, []);
     
 

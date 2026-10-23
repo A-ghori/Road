@@ -1,272 +1,486 @@
-import React, {useRef} from 'react'
-import "leaflet/dist/leaflet.css";
+import { useEffect, useState } from "react";
+import {
+    MapContainer,
+    TileLayer,
+    Marker,
+    Popup,
+    useMap
+} from "react-leaflet";
+
 import L from "leaflet";
-import axios from 'axios';
-import { useState, useEffect } from 'react';
-import { Button } from 'react-bootstrap';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+
 import "leaflet/dist/leaflet.css";
-import { useSocketLocation} from '../Map_Rotes/userSocketLocation';
-import { useRoute } from '../Map_Rotes/useRoute';
-import RouteLayer from '../Map_Rotes/RouteLayer';
-import { useMap } from 'react-leaflet';
-import useSensorApi from '../Gyro/sensor'
-import { io } from "socket.io-client";
-const LiveMap = () => {
-  
-  const {position} = useSocketLocation();
-  const {damage} = useSensorApi()
-  const [destination, setDestination] = useState(null);
-  //const {route, fetchRoute} = useRoute()
-  const [route, setRoute] = useState(null);
-  const[query, setQuery] = useState('');
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [mode, setMode] = useState('car');
-  const [damagePoints, setDamagePoints] = useState([]);
-  
-//const BACKEND_URL = "http://localhost:3001";
-  // Click and set destination
-  //function MapClickHandler(){
-  //  useMapEvents({
-  //    click(e){
-  //      const {lat, lng} = e.latlng;
-  //      console.log(lat,lng);
-  //      setDestination([lat, lng]);
-  //    }
-  //  })
-  //}
 
-// async function searchRoute(){
-//   if(!query) return;
-//   try{
-//     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}`;
-//    const res = await fetch(url);
-//    const data = await res.json();
-//
-//    if(data.length > 0) {
-//      const place = data[0];
-//      const lat = parseFloat(place.lat);
-//      const lon = parseFloat(place.lon);
-//      setDestination([lat, lon]);
-//    }
-// 
-//    } catch (error){
-//      console.error("Error searching location:", error);
-//    }
-// }
+import { useRoute } from "../Map_Rotes/useRoute";
+import { useSocketLocation } from "../Map_Rotes/userSocketLocation";
+import RouteLayer from "../Map_Rotes/RouteLayer";
+import DamageHeatMap from "../components/DamageHeatMap";
+import EmergencyServicesLayer from "./EmergencyServicesLayer";
+import API from "../services/api";
+import TrafficLayer from "../components/TrafficLayer";
+import LiveNavigationMarker from "../components/LiveNavigationMarker";
 
 
 
-
-// For Get Route Fetch All Datas
-useEffect (() => {
-  async function GetfetchHistory() {
-    try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/sensor/all-potholes`, {
-        method : "GET",
-      })
-      const data = await res.json();
-
-      console.log("API RESPONSE", data)
-      const historyPoints = data.features
-      .filter(f => f && f.geometry && f.geometry.coordinates)
-      .map (p => ({
-        lat: p.geometry.coordinates[1],
-        lng: p.geometry.coordinates[0],
-        level: p.properties.damageLevel || 'Medium'
-      }))
-      setDamagePoints(historyPoints)
-    }
- catch (error) {
-  console.error("History fetch failed:", error);
-}
-}
-GetfetchHistory()
-}, [])
-const handleRoute = async () => {
-  if(!from || ! to) return 
-  setRoute(null);
-  try{
-    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/route`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        start: from,
-        end: to,
-        mode: mode
-      })
-    })
-    const data = await res.json();
-    console.log("Route Data:", data);
-    setRoute(data);
-  } catch (error){
-    console.error("Error fetching route:", error);
-    //fetchRoute();
-  }
-}
-
-//useEffect(() => {
-//  if(!position || !destination) return;
-//const fetchRoute = async () => {
-//  try{
-//  const url = `https://router.project-osrm.org/route/v1/driving/${position[1]},${position[0]};${destination[1]},${destination[0]}?overview=full&geometries=geojson`
-//
-//  const response = await fetch(url);
-//   const data = await response.json()
-//
-//      setRoute(data.routes[0].geometry);
-//      console.log("Route Data:", data);
-//
-//  } catch (error) {
-//    console.error("Error fetching route:", error);
-//  }
-//}
-//fetchRoute();
-//
-//  },[position, destination])
+import SimulationControls from "../components/SimulationControls";
 
 
-  function MapUpdater({position}){
+const DEFAULT_CENTER =  [22.0, 79.0]; // Approximate center of India;
+
+const userIcon = L.divIcon({
+    className: "",
+    html: `<div style="
+        width:16px;
+        height:16px;
+        background:#2563eb;
+        border:3px solid white;
+        border-radius:50%;
+        box-shadow:0 0 10px #2563eb;
+    "></div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11]
+});
+
+const potholeIcon = L.divIcon({
+    className: "",
+    html: `<div style="
+        width: 14px;
+        height: 14px;
+        background: #dc2626;
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 6px #dc2626;
+    "></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+});
+
+// Follow current GPS location.
+function CurrentLocation({ position }) {
     const map = useMap();
 
     useEffect(() => {
-      if(!position) return;
-      
-      map.whenReady(() => {
-        map.flyTo(position, 16)
-      })
-    },[position, map])
-    return null;
-  }
+        if (position) {
+            map.setView(position, 16);
+        }
+    }, [position, map]);
 
+    if (!position) return null;
 
-  function getDamageIcon(level) {
-    let color = String;
-    if(level === 'Low') color = "green"
-    if(level === 'Medium') color = "orange";
-    if(level === 'High') color = 'red';
-
- return L.divIcon({
-    html: `<div style="
-      background:${color};
-      width:12px;
-      height:12px;
-      border-radius:50%;
-      border:2px solid white;
-    "></div>`
-  }); 
-  }
-  
-  useEffect (() =>{
-    if(!damage) return;
-
-    setDamagePoints(prev => {
-      const last = prev[prev.length - 1]
-      
-      if(
-        last && 
-        Math.abs(last.lat - damage.lat) < 0.00005 &&
-        Math.abs(last.lng - damage.lng) < 0.00005
-      ) {
-        return prev;
-      }
-return  [
-  ...prev,
-  {
-    lat : damage.lat,
-    lng : damage.lng,
-    level : damage.level
-  }
-]
-    })
-  }, [damage])
-
-const mapRef = useRef(null);
-
- 
-//useEffect(() => {
-//  if(position && mapRef.current){
-//    mapRef.current.setView(position, 15);
-//    console.log(position)
-//  }
-//},[position])
-
- 
-  
-  return (
-     <div>
-    <div style={{
-      position: "absolute",
-      top: 10,
-      left:10,
-      zIndex: 1000,
-      background: "white",
-      padding: "10px",
-      borderRadius: "5px",
-      boxShadow: "0 0 10px rgba(0,0,0,0.3)"
-     }}>
-      <input 
-      type='text'
-      placeholder='From..'
-      value={from}
-      onChange={(e) => setFrom(e.target.value)}
-/>
-<br />
-<input 
-type='text'
-placeholder='to...'
-value={to}
-onChange={(e) => setTo(e.target.value)}
-></input>
-<br/>
-
-<select value={mode} onChange={(e) => setMode(e.target.value)} >
-
-<option value="car">Car</option>
-<option value="bike">Bike</option>
-<option value="bus">bus</option>
-<option value="walk">Walk</option>
-
-
-</select>
-<br/>
-<button onClick={handleRoute}>Get Route</button>
-     </div>
-
-     
-
-  <MapContainer center={position ||[22.57, 88.36] }
-  zoom={15}
-  whenCreated={(map) => (mapRef.current = map)}
-  style={{ height: "500px", width: "100%" }}
->
-  <MapUpdater position={position} />
-   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-{damagePoints.map((point, i) => {
-  if(!point || point.lat === undefined || point.lng === undefined){
-    return null
-  }
-  
-  return (
-    <Marker
-      key={i}
-      position={[point.lat, point.lng]}
-      icon={getDamageIcon(point.level)}
-    />
-  );
-})}
-
-{position  && !route && <Marker position={position} /> }
-{/*<MapClickHandler setDestination={setDestination}></MapClickHandler> */}
-{destination && <Marker position={destination} />}
-{route && <RouteLayer route={route}/>
-}
-</MapContainer>
-    </div>
-  )
+    return (
+        <Marker position={position} icon={userIcon}>
+            <Popup>Your current location</Popup>
+        </Marker>
+    );
 }
 
-export default LiveMap
+// Give the heatmap access to the real Leaflet map.
+function HeatMapLayer({ damages = [] }) {
+    const map = useMap();
+
+    return <DamageHeatMap map={map} damages={damages} />;
+}
+
+export default function LiveMap() {
+    const { position, users, rotation } = useSocketLocation();
+    const { route, traffic, fetchRoute, setRoute } = useRoute();
+
+    const [start, setStart] = useState("");
+    const [end, setEnd] = useState("");
+    const [routeInfo , setRouteInfo] = useState(null);
+    const [mode, setMode] = useState("auto");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [potholes, setPotholes] = useState([]);
+    const [potholeError, setPotholeError] = useState("");
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    //const [simPos, setSimPos] = useState(null); // Simulator se aane wali position
+
+    // Agar simulator position de raha hai toh woh use karo, warna asli GPS position
+    //const activePosition = simPos || position;
+
+    async function handleAutoReroute(newStartCoords) {
+    if (!end.trim()) return;
+    setStart(newStartCoords);
+    const metadata = await fetchRoute(newStartCoords, end, mode);
+    if (metadata) {
+        setRouteInfo({
+            distance: metadata.distance,
+            duration: metadata.duration,
+            unit: metadata.unit || "KM"
+        });
+    }
+}
+
+
+    async function handleDamageReport(sensorData) {
+        try {
+            const response = await API.post("/damage", sensorData);
+            console.log("Damage Report Saved", response.data);
+        } catch (error) {
+            console.error(
+            "Damage report failed:",
+            error.response?.data || error.message
+        );
+        }
+    }
+    
+    useEffect(() => {
+        if (position) {
+            setStart((previous) => previous || position.join(","));
+        }
+    }, [position]);
+
+   useEffect(() => {
+    let cancelled = false;
+
+    async function loadPotholes() {
+        try {
+            const response = await API.get("/sensor/all-potholes");
+
+            if(!cancelled){
+                const features = response.data?.features ?? [];
+                setPotholes(features);
+                setPotholeError("");
+            }
+        } catch (err) {
+            console.error("Could Not Load Potholes:",err);
+
+            if(!cancelled){
+                setPotholeError("Could Not Load Pothole Location")
+            }
+        }
+    } 
+    loadPotholes();
+    return () => {
+        cancelled = true
+    }
+   }, [])
+
+
+async function handleRoute(e) {
+    e.preventDefault();
+    setError("");
+    setRoute(null);
+
+    if (!start.trim() || !end.trim()) {
+        setError("Enter start and destination.");
+        return;
+    }
+
+    setLoading(true);
+
+    try {
+        const metadata = await fetchRoute(start, end, mode);
+
+        if (!metadata) {
+            setError("Route not found. Check the backend response.");
+            return;
+        }
+
+        setRouteInfo(
+          {
+            distance: metadata.distance,
+            duration: metadata.duration,
+            unit: metadata.unit || "KM"
+          }
+        )
+
+        console.log("Route metadata:", metadata);
+    } catch (err) {
+        console.error("Route error:", err);
+        setError(err.message || "Could not calculate the route.");
+    } finally {
+        setLoading(false);
+    }
+}
+
+
+    function clearRoute() {
+        setRouteInfo(null);
+        setRoute(null);
+        setRoute(null);
+        setEnd("");
+        setError("");
+    }
+
+  
+    function currentLocation(){
+     if (!position){
+      setError("Current location is not available yet.");
+      return 
+     }else {
+      setStart (`${position[0]}, ${position[1]}`)
+      setError("")
+     }
+    }
+
+return (
+    <main style={{ padding: "16px" }}>
+        <h2>Live Road Map</h2>
+
+        <button
+            type="button"
+            disabled={!position}
+            onClick={() => {
+                handleDamageReport({
+                    lat: position[0],
+                    lng: position[1],
+                    ax: 0.5,
+                    ay: 1.2,
+                    az: 9.7,
+                });
+            }}
+        >
+            Test Damage POST
+        </button>
+
+        {route && (
+            <button
+                type="button"
+                onClick={() => setIsNavigating((prev) => !prev)}
+                style={{
+                    background: isNavigating ? "#dc2626" : "#16a34a",
+                    color: "white",
+                    fontWeight: "bold",
+                    padding: "8px 14px",
+                    marginLeft: "8px",
+                    borderRadius: "6px",
+                    border: "none",
+                    cursor: "pointer",
+                }}
+            >
+                {isNavigating
+                    ? "⏹ Stop Navigation"
+                    : "▶ Start Live Navigation"}
+            </button>
+        )}
+
+        {routeInfo && (
+            <div
+                style={{
+                    display: "flex",
+                    gap: "20px",
+                    padding: "12px 16px",
+                    marginTop: "12px",
+                    marginBottom: "12px",
+                    border: "1px solid #ddd",
+                    borderRadius: "10px",
+                    background: "#f8fafc",
+                }}
+            >
+                <div>
+                    <strong>Distance</strong>
+                    <div>{Number(routeInfo.distance).toFixed(2)} km</div>
+                </div>
+
+                <div>
+                    <strong>Estimated Time</strong>
+                    <div>{routeInfo.duration} min</div>
+                </div>
+            </div>
+        )}
+
+        <form
+            onSubmit={handleRoute}
+            style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "10px",
+                marginBottom: "12px",
+            }}
+        >
+            <input
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                placeholder="Start: location or lat,lng"
+                aria-label="Start location"
+            />
+
+            <input
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                placeholder="Destination: location or lat,lng"
+                aria-label="Destination"
+            />
+
+            <select
+                value={mode}
+                onChange={(e) => setMode(e.target.value)}
+                aria-label="Travel mode"
+            >
+                <option value="auto">Driving</option>
+                <option value="bicycle">Cycling</option>
+                <option value="pedestrian">Walking</option>
+            </select>
+
+            <button type="submit" disabled={loading}>
+                {loading ? "Finding route..." : "Find Route"}
+            </button>
+
+            <button type="button" onClick={currentLocation}>
+                Get Current Location
+            </button>
+
+            <button type="button" onClick={clearRoute}>
+                Clear Route
+            </button>
+        </form>
+
+        {error && (
+            <p role="alert" style={{ color: "red" }}>
+                {error}
+            </p>
+        )}
+
+        {potholeError && (
+            <p role="alert" style={{ color: "red" }}>
+                {potholeError}
+            </p>
+        )}
+
+        {!position && (
+            <p>Waiting for GPS permission or current location...</p>
+        )}
+
+        <p>Other connected users: {Object.keys(users).length}</p>
+
+        <div
+            style={{
+                height: "70vh",
+                minHeight: "400px",
+                width: "100%",
+                borderRadius: "10px",
+                overflow: "hidden",
+            }}
+        >
+            <MapContainer
+                center={position ?? DEFAULT_CENTER}
+                zoom={position ? 15:5}
+                style={{ height: "100%", width: "100%" }}
+            >
+                <TileLayer
+                    attribution="&copy; OpenStreetMap contributors"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                 <CurrentLocation position={position} /> 
+
+                {potholes.map((feature, index) => {
+                    const coordinates = feature?.geometry?.coordinates;
+
+                    if (!coordinates || coordinates.length < 2) {
+                        return null;
+                    }
+
+                    // GeoJSON coordinates: [longitude, latitude]
+                    const [longitude, latitude] = coordinates;
+                    const properties = feature.properties ?? {};
+
+                    return (
+                        <Marker
+                            key={`${properties.timestamp || "pothole"}-${index}`}
+                            position={[latitude, longitude]}
+                            icon={potholeIcon}
+                        >
+                            <Popup>
+                                <div>
+                                    <strong>Pothole Detected</strong>
+
+                                    <p>
+                                        <strong>Damage Level:</strong>{" "}
+                                        {properties.damageLevel ?? "Unknown"}
+                                    </p>
+
+                                    <p>
+                                        <strong>Force:</strong>{" "}
+                                        {properties.force != null
+                                            ? Number(properties.force).toFixed(2)
+                                            : "N/A"}
+                                    </p>
+
+                                    <p>
+                                        <strong>Confidence:</strong>{" "}
+                                        {properties.confidence ?? "N/A"}
+                                    </p>
+
+                                    <p>
+                                        <strong>Detected At:</strong>{" "}
+                                        {properties.timestamp
+                                            ? new Date(
+                                                  properties.timestamp
+                                              ).toLocaleString()
+                                            : "Unknown"}
+                                    </p>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    );
+                })}
+
+                <EmergencyServicesLayer />
+
+                <LiveNavigationMarker
+                    rawPosition={position}
+                    heading={rotation}
+                    route={route}
+                    isNavigating={isNavigating}
+                    onReroute={handleAutoReroute}
+                />
+
+                {Object.entries(users).map(([id, coords]) => {
+                    const [lat, lng, heading] = coords;
+
+                    if (
+                        !Number.isFinite(Number(lat)) ||
+                        !Number.isFinite(Number(lng))
+                    ) {
+                        return null;
+                    }
+
+                    return (
+                        <Marker
+                            key={id}
+                            position={[Number(lat), Number(lng)]}
+                        >
+                            <Popup>
+                                Connected user
+                                <br />
+                                Heading: {heading ?? "Unknown"}
+                            </Popup>
+                        </Marker>
+                    );
+                })}
+
+                <RouteLayer route={route} traffic={traffic} />
+
+                <HeatMapLayer damages={[]} />
+            </MapContainer>
+        </div>
+
+        {/* Simulation controls: map ke bahar, clearly visible */}
+        <div
+            style={{
+                display: "block",
+                width: "100%",
+                marginTop: "16px",
+                padding: "12px",
+                boxSizing: "border-box",
+                border: "2px solid #2563eb",
+                borderRadius: "10px",
+                background: "#f8fafc",
+            }}
+        >
+            {/* <h3 style={{ marginTop: 0 }}>Navigation Simulator</h3> /*}
+
+           {/*<SimulationControls
+                route={route}
+                realPosition={position}
+                onSimPositionChange={setSimPos}
+                onNavigationStateChange={setIsNavigating}
+            /> */}
+
+        </div>
+    </main>
+)
+}

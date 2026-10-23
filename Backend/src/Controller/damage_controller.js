@@ -16,7 +16,7 @@ const getDamageReports = async (req,res) => {
     damage_level,
     confidence,
     status,
-    reported_at,
+    reported_at
     FROM damage_reports
     ORDER BY reported_at DESC`;
 
