@@ -16,16 +16,17 @@ let gravityInitialized = false;
 
 // Remove Gravity
 function removeGravity(ax,ay,az){
-    gravity.x = alpha * gravity.x + (1 - alpha) * ax;
-    gravity.y = alpha * gravity.y + (1 - alpha) * ay;
-    gravity.z = alpha * gravity.z + (1 - alpha) * az;
-    
     if(!gravityInitialized){
         gravity = {x:ax, y:ay, z:az};
         gravityInitialized = true;
     
         return {x: 0, y:0, z:0}
     }
+
+    gravity.x = alpha * gravity.x + (1 - alpha) * ax;
+    gravity.y = alpha * gravity.y + (1 - alpha) * ay;
+    gravity.z = alpha * gravity.z + (1 - alpha) * az;
+    
 
     return {
         x: ax - gravity.x,
@@ -50,8 +51,8 @@ function removeGravity(ax,ay,az){
 
     //const avg = buffer.reduce((a,b) => a + b , 0) / buffer.length;
     //return avg;
-    //let avgScore = buffer.reduce((a,b) => a+b, 0) / buffer.length
-    return Math.max(...buffer);
+    return buffer.reduce((a,b) => a+b, 0) / buffer.length
+    //return Math.max(...buffer);
 
 
     //let score = 0;
@@ -113,6 +114,9 @@ function medium(x) {
 
    // Winner Take All Logic
    function getFinalDecision(force){
+    if (force < 1.5) {
+            return { label: "NONE", confidence: "0%" };
+        }
     const lVal = low(force);
     const mVal = medium(force);
     const hVal = high(force);
@@ -129,8 +133,7 @@ function medium(x) {
                 winner = scores[i]
             }
         }
-        if(force < 1.5) return {label: "NONE", confidence:"0%"}
-        
+
         return {
             label: winner.label,
             confidence: (winner.value * 100).toFixed(0)+ "%"
