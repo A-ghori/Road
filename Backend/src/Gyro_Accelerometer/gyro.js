@@ -12,14 +12,20 @@ let buffer = []
 const MAX_SIZE = 5
 let gravity = {x: 0, y:0, z:0}
 const alpha = 0.95 // Assume value for smoothing factor for stable gravity 
-
+let gravityInitialized = false;
 
 // Remove Gravity
-    function removeGravity(ax,ay,az){
+function removeGravity(ax,ay,az){
     gravity.x = alpha * gravity.x + (1 - alpha) * ax;
     gravity.y = alpha * gravity.y + (1 - alpha) * ay;
     gravity.z = alpha * gravity.z + (1 - alpha) * az;
-
+    
+    if(!gravityInitialized){
+        gravity = {x:ax, y:ay, z:az};
+        gravityInitialized = true;
+    
+        return {x: 0, y:0, z:0}
+    }
 
     return {
         x: ax - gravity.x,
@@ -33,7 +39,7 @@ const alpha = 0.95 // Assume value for smoothing factor for stable gravity
     }
     
     function getVibration(magnitude){
-    return  Math.abs(magnitude - 9.8);
+    return  magnitude;
     }
 
     // Smoothing
