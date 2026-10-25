@@ -23,6 +23,8 @@ import LiveNavigationMarker from "../components/LiveNavigationMarker";
 
 
 import SimulationControls from "../components/SimulationControls";
+import useSensorApi from "../Gyro/sensor";
+import { all } from "axios";
 
 
 const DEFAULT_CENTER =  [22.0, 79.0]; // Approximate center of India;
@@ -94,6 +96,7 @@ export default function LiveMap() {
     const [potholes, setPotholes] = useState([]);
     const [potholeError, setPotholeError] = useState("");
     const [isNavigating, setIsNavigating] = useState(false);
+    const {damage,requestMotionPermission, sensorError} = useSensorApi(isNavigating);
 
     //const [simPos, setSimPos] = useState(null); // Simulator se aane wali position
 
@@ -113,18 +116,32 @@ export default function LiveMap() {
     }
 }
 
-
-    async function handleDamageReport(sensorData) {
-        try {
-            const response = await API.post("/damage", sensorData);
-            console.log("Damage Report Saved", response.data);
-        } catch (error) {
-            console.error(
-            "Damage report failed:",
-            error.response?.data || error.message
-        );
-        }
+const handleNavigationToggle = async () => {
+    if(isNavigating) {
+        setIsNavigating(false);
+        return;
     }
+    setIsNavigating(true);
+    const allowed = await requestMotionPermission();
+
+    if(allowed){
+        console.log("Motion Sensor permission granted")
+    }else {
+        console.log("Navigation is active, but motion sensing is unavailable")
+    }
+}
+
+    // async function handleDamageReport(sensorData) {
+    //     try {
+    //         const response = await API.post("/sensor/sensor-data", sensorData);
+    //         console.log("Damage Report Saved", response.data);
+    //     } catch (error) {
+    //         console.error(
+    //         "Damage report failed:",
+    //         error.response?.data || error.message
+    //     );
+    //     }
+    // }
     
     useEffect(() => {
         if (position) {
@@ -220,26 +237,12 @@ return (
     <main style={{ padding: "16px" }}>
         <h2>Live Road Map</h2>
 
-        <button
-            type="button"
-            disabled={!position}
-            onClick={() => {
-                handleDamageReport({
-                    lat: position[0],
-                    lng: position[1],
-                    ax: 0.5,
-                    ay: 1.2,
-                    az: 9.7,
-                });
-            }}
-        >
-            Test Damage POST
-        </button>
+       
 
         {route && (
             <button
                 type="button"
-                onClick={() => setIsNavigating((prev) => !prev)}
+                onClick={handleNavigationToggle}
                 style={{
                     background: isNavigating ? "#dc2626" : "#16a34a",
                     color: "white",
