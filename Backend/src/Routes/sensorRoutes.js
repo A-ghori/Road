@@ -16,23 +16,72 @@ const router = express.Router();
 const { analyzeSensor } = require('../Gyro_Accelerometer/gyro');
 const pothole = require('../models/Sensosr.model');
 
+const EARTH_RADIUS_METERS = 6378100;
+const SEARCH_RADIUS_METERS = 15;
+const MAX_NEARBY_POINTS = 10;
+
  router.post('/sensor-data', async (req, res) => {
     try {
         console.log("Received Sensor Data:", req.body);
         const { ax, ay, az, lat, lng, speed } = req.body;
+        const sensorValues = [ax, ay, az];
 
+        if (!sensorValues.every(
+            value => typeof value === "number" && Number.isFinite(value) 
+        )) {
+            return res.status(400).json({
+                success : false,
+                message : "Valid Numeric AX , AY, AZ are required"
+            })
+        }
         // 2. Log incoming data at DEBUG level for development
         sensorLog.debug({ raw: { ax, ay, az }, speed }, "Incoming Stream");
 
         // Validate data
-        if (ax === undefined || ay === undefined || az === undefined) {
-            sensorLog.warn({ body: req.body }, "Incomplete data packet received");
-            return res.status(400).json({ error: "Missing Sensor Data" });
-        }
+       // 2. Validate GPS coordinates.
+    if (
+      typeof lat !== "number" ||
+      typeof lng !== "number" ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 || lat > 90 ||
+      lng < -180 || lng > 180
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid numeric lat and lng are required"
+      });
+    }
+
 
         // 3. Process Data via your Engine
         const result = analyzeSensor(ax, ay, az);
-        if(result.damageLevel !== "NONE"){
+
+
+         const responseData = {
+            lat,
+            lng,
+            speed,
+            force: Number(result.force).toFixed(2),
+            damageLevel: result.damageLevel,
+            confidence: result.confidence,
+            timestamp: Date.now()
+        };
+
+        logger.debug(responseData, "Sensor Analysis is Completed")
+        
+        const shouldSave = ["Medium" , "High"].includes(result.damageLevel);
+
+          if (!shouldSave) {
+      return res.json({
+        success: true,
+        saved: false,
+        message: "Detection not eligible for saving",
+        data: responseData
+      });
+    }
+
+
 
 
         // Optimization Db (Geo Fence Logic)
@@ -48,17 +97,25 @@ const pothole = require('../models/Sensosr.model');
                 //    $maxDistance : 5
                 //}
                 $geoWithin: {
-                    $centerSphere :[[lng, lat], 15 / 6378100] // for 15 meter radius 
+                    $centerSphere :[[lng, lat], SEARCH_RADIUS_METERS / EARTH_RADIUS_METERS] // for 15 meter radius 
                     
                 }
             }
         })
-    console.log(`Nearby points in 5 meters ${nearbyCount}`)
+    logger.debug(
+    { nearbyCount, radiusMeters: SEARCH_RADIUS_METERS },
+    "Nearby reports checked"
+);
         // threshold  10 times available 
-        if(nearbyCount >= 10){
-            console.log("Skipping Save: Area already well-mapped (Count: " + nearbyCount + ")");
-                return res.json({ success: true, message: "Limit reached for this spot" });
+        if(nearbyCount >= MAX_NEARBY_POINTS){
+           return res.json({
+        success: true,
+        saved: false,
+        message: "Area already has enough reports",
+        data: responseData
+      });
             }
+
 // Else condition 
             const newDamage = new  pothole({
                 location :{
@@ -72,16 +129,11 @@ const pothole = require('../models/Sensosr.model');
             })
             await newDamage.save();
             console.log("Sensor Data Values are saved in DB", newDamage, result.damageLevel)
-        }
-         const responseData = {
-            lat,
-            lng,
-            speed,
-            force: Number(result.force).toFixed(2),
-            damageLevel: result.damageLevel,
-            confidence: result.confidence,
-            timestamp: Date.now()
-        };
+        
+         logger.info(
+      { id: newDamage._id, damageLevel: result.damageLevel },
+      "Damage report saved"
+    );
 
         // 4. SMART LOGGING based on Damage Level
         if (result.damageLevel === "High") {
@@ -96,7 +148,8 @@ const pothole = require('../models/Sensosr.model');
 
         res.json({
             success: true,
-            data: result
+            saved : true,
+            data: responseData
         });
 
     } catch (err) {
@@ -127,7 +180,7 @@ router.get('/all-potholes',async(req,res) => {
         )}
         res.json(geojson)
     }catch (error) {
-        res.json(500).jsonp({
+        res.json(500).json({
             message : error.message
         })
     }
