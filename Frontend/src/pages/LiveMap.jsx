@@ -457,7 +457,7 @@ return (
 
                 <RouteLayer route={route} traffic={traffic} />
 
-                <HeatMapLayer damages={[]} />
+                <HeatMapLayer damages={damage ? [damage] : []} />
             </MapContainer>
         </div>
 

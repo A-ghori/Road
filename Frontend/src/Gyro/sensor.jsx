@@ -127,14 +127,15 @@ export default function useSensorApi(isNavigating = false) {
       return;
     }
 
+    
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, speed } = position.coords;
-
+        const safespeed = Number.isFinite(speed) ? speed : 0;
         latestLocation.current = {
           lat: latitude,
           lng: longitude,
-          speed: speed ?? 0
+          speed: safespeed
         };
       },
       (error) => {

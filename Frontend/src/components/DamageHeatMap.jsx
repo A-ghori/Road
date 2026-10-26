@@ -19,8 +19,8 @@ export default function DamageHeatMap({map, damages = []}){
                 lat <= 90 &&
                 lng >= -180 &&
                 lng <= 180 &&
-                damage.damage_level &&
-                damage.damage_level !== "NONE"
+                damage.level &&
+                damage.level !== "NONE"
             )
         })
         .map((damage) => {
@@ -28,7 +28,7 @@ export default function DamageHeatMap({map, damages = []}){
             const lng = Number(damage.lng);
             
             const level = String(
-                damage.damage_level
+                damage.level
             ).toUpperCase();
             const severity = {
                    LOW: 0.35,
