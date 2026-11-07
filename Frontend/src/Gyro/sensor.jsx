@@ -16,7 +16,7 @@ export default function useSensorApi(isNavigating = false) {
   const latestSensorData = useRef({
     ax: 0,
     ay: 0,
-    az: 0
+    az: 0 
   });
 
   const lastSentTime = useRef(0);
