@@ -3,17 +3,17 @@
 // Input -> Api Request -> Response Validation -> Gemotery Decode -> Final Result 
 const axios = require("axios");
 
-const VALHALLA_URL ="https://transit.land/api/v2/routing/valhalla/route";
+const VALHALLA_URL = process.env.VALHALLA_URL;
 
 
 const polyline = require("../RoadData/PolyLine");
 
 async function getHostedRoute(startLat, startLng, endLat, endLng, mode="car") {
-    const api_key = process.env.VALHALLA_API_KEY;
+    // const api_key = process.env.VALHALLA_API_KEY;
 
-    if (!api_key){
-        throw new Error("Valhalla Api Key Error");
-    }
+    // if (!api_key){
+    //     throw new Error("Valhalla Api Key Error");
+    // }
 
 const costingModes = {
     car: "auto",
@@ -43,7 +43,7 @@ const costingModes = {
         },
         {
             headers: {
-        apikey: api_key,
+        // apikey: api_key,
         "Content-Type": "application/json"
       },
       timeout: 20000
