@@ -8,12 +8,38 @@ const VALHALLA_URL = process.env.VALHALLA_URL;
 
 const polyline = require("../RoadData/PolyLine");
 
+const VALHALL_PROVIDER = process.env.VALHALLA_PROVIDER || 'local';
+const VALHALLA_CONFIG = {
+    local : {
+        url:process.env.LOCAL_VALHALLA_URL,
+        headers : {}
+    },
+
+    transitland : {
+        url : process.env.TRANSITLAND_VALHALLA_URL,
+        headers : {
+            apikey : process.env.VALHALLA_API_KEY
+        }
+    }
+}
 async function getHostedRoute(startLat, startLng, endLat, endLng, mode="car") {
     // const api_key = process.env.VALHALLA_API_KEY;
 
     // if (!api_key){
     //     throw new Error("Valhalla Api Key Error");
     // }
+    
+const config = VALHALLA_CONFIG[VALHALL_PROVIDER];
+if (!config?.url){
+    throw new Error (
+        `Invalid or missing valhalla config : ${VALHALL_PROVIDER}`
+    )
+}
+if (
+    VALHALL_PROVIDER === "transitland" && !process.env.TRANSITLAND_VALHALLA_API_KEY
+){
+    throw new Error("TransitLand API is missing")
+}
 
 const costingModes = {
     car: "auto",
@@ -32,7 +58,7 @@ const costingModes = {
     }
 
     const response = await axios.post(
-        VALHALLA_URL,
+        config.url,
         {
             locations : [
                 {lat : Number(startLat), lon : Number(startLng)},
@@ -44,7 +70,8 @@ const costingModes = {
         {
             headers: {
         // apikey: api_key,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        ...config.headers
       },
       timeout: 20000
         }
