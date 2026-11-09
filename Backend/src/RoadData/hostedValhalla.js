@@ -18,7 +18,7 @@ const VALHALLA_CONFIG = {
     transitland : {
         url : process.env.TRANSITLAND_VALHALLA_URL,
         headers : {
-            apikey : process.env.VALHALLA_API_KEY
+            apikey : process.env.TRANSITLAND_VALHALLA_API_KEY
         }
     }
 }
