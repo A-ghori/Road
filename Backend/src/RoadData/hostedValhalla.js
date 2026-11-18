@@ -8,7 +8,7 @@ const VALHALLA_URL = process.env.VALHALLA_URL;
 
 const polyline = require("../RoadData/PolyLine");
 
-const VALHALL_PROVIDER = process.env.VALHALLA_PROVIDER || 'local';
+const VALHALLA_PROVIDER = process.env.VALHALLA_PROVIDER || 'local';
 const VALHALLA_CONFIG = {
     local : {
         url:process.env.LOCAL_VALHALLA_URL,
@@ -29,14 +29,14 @@ async function getHostedRoute(startLat, startLng, endLat, endLng, mode="car") {
     //     throw new Error("Valhalla Api Key Error");
     // }
     
-const config = VALHALLA_CONFIG[VALHALL_PROVIDER];
+const config = VALHALLA_CONFIG[VALHALLA_PROVIDER];
 if (!config?.url){
     throw new Error (
-        `Invalid or missing valhalla config : ${VALHALL_PROVIDER}`
+        `Invalid or missing valhalla config : ${VALHALLA_PROVIDER}`
     )
 }
 if (
-    VALHALL_PROVIDER === "transitland" && !process.env.TRANSITLAND_VALHALLA_API_KEY
+    VALHALLA_PROVIDER === "transitland" && !process.env.TRANSITLAND_VALHALLA_API_KEY
 ){
     throw new Error("TransitLand API is missing")
 }
