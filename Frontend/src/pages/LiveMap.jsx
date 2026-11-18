@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
     MapContainer,
     TileLayer,
@@ -24,7 +24,7 @@ import LiveNavigationMarker from "../components/LiveNavigationMarker";
 
 import SimulationControls from "../components/SimulationControls";
 import useSensorApi from "../Gyro/sensor";
-import { all } from "axios";
+
 
 
 const DEFAULT_CENTER =  [22.0, 79.0]; // Approximate center of India;
@@ -58,14 +58,31 @@ const potholeIcon = L.divIcon({
 });
 
 // Follow current GPS location.
-function CurrentLocation({ position }) {
+function CurrentLocation({ position, isNavigating }) {
     const map = useMap();
 
+    // Track wether initial centering will happend
+    const hasCentered = useRef(false);
+
+
+
     useEffect(() => {
-        if (position) {
+        if (!position) return;
+        
+        
+        if (!hasCentered.current) {
             map.setView(position, 16);
+            hasCentered.current = true;
+            return
         }
-    }, [position, map]);
+        //  If navigation is runnig then dont zoom 
+        if (isNavigating) {
+            map.panTo(position, {
+                animate: true,
+                duration: 0.5
+            });
+        }
+    }, [position, isNavigating, map]);
 
     if (!position) return null;
 
@@ -367,7 +384,7 @@ return (
                     attribution="&copy; OpenStreetMap contributors"
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                 <CurrentLocation position={position} /> 
+                 <CurrentLocation position={position} isNavigating={isNavigating} /> 
 
                 {potholes.map((feature, index) => {
                     const coordinates = feature?.geometry?.coordinates;
@@ -462,7 +479,7 @@ return (
         </div>
 
         {/* Simulation controls: map ke bahar, clearly visible */}
-        <div
+        {/* <div
             style={{
                 display: "block",
                 width: "100%",
@@ -483,7 +500,8 @@ return (
                 onNavigationStateChange={setIsNavigating}
             /> */}
 
-        </div>
+        {/* </div>  */}
+    
     </main>
 )
 }
